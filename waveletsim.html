@@ -302,7 +302,7 @@
                     var height = (100 - ((wavelet[y][x] + 128) * 100 / 256)) + '%';
                     var back = 'linear-gradient(to bottom, #1e5799 0%,#1e5799 ' + height + ',#7db9e8 ' + height + ',#7db9e8 100%)'
                     waveletDivs[y][x].style.background = back;
-                    waveletDivs[y][x].innerHTML = wavelet[y][x].toFixed(2);
+                    waveletDivs[y][x].innerHTML = Math.round(wavelet[y][x]);
                 }
             }
         }
