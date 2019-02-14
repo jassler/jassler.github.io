@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Wavelet Simulator</title>
+
+    <style>
+        .box {
+            display: inline-block;
+            position: relative;
+            background-color: black;
+            width: 45%;
+        }
+        .box::before {
+            content: "";
+            display: block;
+            padding-top: 100%;
+        }
+        .pixelgrid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-content: space-between;
+        }
+
+        .pixelgrid > div {
+            background-color: white;
+            width: 12%;
+            height: 12%;
+            opacity: 1;
+        }
+
+        #wavelets > div {
+            /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+            background: linear-gradient(to bottom, #1e5799 0%,#1e5799 52%,#7db9e8 52%,#7db9e8 100%);
+        }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <div id="pixels" class="pixelgrid">
+            <!-- Row 0 -->
+            <div class="pixel00"></div>
+            <div class="pixel01"></div>
+            <div class="pixel02"></div>
+            <div class="pixel03"></div>
+            <div class="pixel04"></div>
+            <div class="pixel05"></div>
+            <div class="pixel06"></div>
+            <div class="pixel07"></div>
+
+            <!-- Row 1 -->
+            <div class="pixel10"></div>
+            <div class="pixel11"></div>
+            <div class="pixel12"></div>
+            <div class="pixel13"></div>
+            <div class="pixel14"></div>
+            <div class="pixel15"></div>
+            <div class="pixel16"></div>
+            <div class="pixel17"></div>
+
+            <!-- Row 2 -->
+            <div class="pixel20"></div>
+            <div class="pixel21"></div>
+            <div class="pixel22"></div>
+            <div class="pixel23"></div>
+            <div class="pixel24"></div>
+            <div class="pixel25"></div>
+            <div class="pixel26"></div>
+            <div class="pixel27"></div>
+
+            <!-- Row 3 -->
+            <div class="pixel30"></div>
+            <div class="pixel31"></div>
+            <div class="pixel32"></div>
+            <div class="pixel33"></div>
+            <div class="pixel34"></div>
+            <div class="pixel35"></div>
+            <div class="pixel36"></div>
+            <div class="pixel37"></div>
+
+            <!-- Row 4 -->
+            <div class="pixel40"></div>
+            <div class="pixel41"></div>
+            <div class="pixel42"></div>
+            <div class="pixel43"></div>
+            <div class="pixel44"></div>
+            <div class="pixel45"></div>
+            <div class="pixel46"></div>
+            <div class="pixel47"></div>
+
+            <!-- Row 5 -->
+            <div class="pixel50"></div>
+            <div class="pixel51"></div>
+            <div class="pixel52"></div>
+            <div class="pixel53"></div>
+            <div class="pixel54"></div>
+            <div class="pixel55"></div>
+            <div class="pixel56"></div>
+            <div class="pixel57"></div>
+
+            <!-- Row 6 -->
+            <div class="pixel60"></div>
+            <div class="pixel61"></div>
+            <div class="pixel62"></div>
+            <div class="pixel63"></div>
+            <div class="pixel64"></div>
+            <div class="pixel65"></div>
+            <div class="pixel66"></div>
+            <div class="pixel67"></div>
+
+            <!-- Row 7 -->
+            <div class="pixel70"></div>
+            <div class="pixel71"></div>
+            <div class="pixel72"></div>
+            <div class="pixel73"></div>
+            <div class="pixel74"></div>
+            <div class="pixel75"></div>
+            <div class="pixel76"></div>
+            <div class="pixel77"></div>
+        </div>
+    </div>
+
+    <div class="box">
+        <div id="wavelets" class="pixelgrid">
+            <div class="pixel00"></div>
+            <div class="pixel01"></div>
+            <div class="pixel02"></div>
+            <div class="pixel03"></div>
+            <div class="pixel04"></div>
+            <div class="pixel05"></div>
+            <div class="pixel06"></div>
+            <div class="pixel07"></div>
+            <div class="pixel10"></div>
+            <div class="pixel11"></div>
+            <div class="pixel12"></div>
+            <div class="pixel13"></div>
+            <div class="pixel14"></div>
+            <div class="pixel15"></div>
+            <div class="pixel16"></div>
+            <div class="pixel17"></div>
+            <div class="pixel20"></div>
+            <div class="pixel21"></div>
+            <div class="pixel22"></div>
+            <div class="pixel23"></div>
+            <div class="pixel24"></div>
+            <div class="pixel25"></div>
+            <div class="pixel26"></div>
+            <div class="pixel27"></div>
+            <div class="pixel30"></div>
+            <div class="pixel31"></div>
+            <div class="pixel32"></div>
+            <div class="pixel33"></div>
+            <div class="pixel34"></div>
+            <div class="pixel35"></div>
+            <div class="pixel36"></div>
+            <div class="pixel37"></div>
+            <div class="pixel40"></div>
+            <div class="pixel41"></div>
+            <div class="pixel42"></div>
+            <div class="pixel43"></div>
+            <div class="pixel44"></div>
+            <div class="pixel45"></div>
+            <div class="pixel46"></div>
+            <div class="pixel47"></div>
+            <div class="pixel50"></div>
+            <div class="pixel51"></div>
+            <div class="pixel52"></div>
+            <div class="pixel53"></div>
+            <div class="pixel54"></div>
+            <div class="pixel55"></div>
+            <div class="pixel56"></div>
+            <div class="pixel57"></div>
+            <div class="pixel60"></div>
+            <div class="pixel61"></div>
+            <div class="pixel62"></div>
+            <div class="pixel63"></div>
+            <div class="pixel64"></div>
+            <div class="pixel65"></div>
+            <div class="pixel66"></div>
+            <div class="pixel67"></div>
+            <div class="pixel70"></div>
+            <div class="pixel71"></div>
+            <div class="pixel72"></div>
+            <div class="pixel73"></div>
+            <div class="pixel74"></div>
+            <div class="pixel75"></div>
+            <div class="pixel76"></div>
+            <div class="pixel77"></div>
+        </div>
+    </div>
+    
+    <script>
+        var wavelet = [
+            [ 111.406,      0, 20.625, -20.625,   77.5,      0,      0,  -77.5 ],
+            [ -8.28125,      0, 19.0625, -19.0625,    -20,    -85,     85,     20 ],
+            [ 23.125, 23.125, 30.625, -30.625,    -50,  18.75, -18.75,     50 ],
+            [ -9.0625, -9.0625, -29.6875, 29.6875,   77.5,     -5,      5,  -77.5 ],
+            [     25,    -25,    -25,     25,    -25,      0,      0,     25 ],
+            [      0,   12.5,  -12.5,      0,      0,  -12.5,  -12.5,      0 ],
+            [      0,  68.75,  68.75,      0,      0, -28.75,  28.75,      0 ],
+            [    -25,     30,     30,    -25,     25,     -5,      5,    -25 ]
+        ];
+        
+        // 8x8 grid of pixels
+        var pixels = [
+            [ 0, 0, 0, 0, 0, 0, 0, 0 ],
+            [ 0, 0, 0, 0, 0, 0, 0, 0 ],
+            [ 0, 0, 0, 0, 0, 0, 0, 0 ],
+            [ 0, 0, 0, 0, 0, 0, 0, 0 ],
+            [ 0, 0, 0, 0, 0, 0, 0, 0 ],
+            [ 0, 0, 0, 0, 0, 0, 0, 0 ],
+            [ 0, 0, 0, 0, 0, 0, 0, 0 ],
+            [ 0, 0, 0, 0, 0, 0, 0, 0 ]
+        ];
+
+        // 8x8 grid of divs, corresponds to the pixels above
+        var pixelDivs = [];
+        var waveletDivs = [];
+
+        (function() {
+            
+            // initialize pixelDivs
+            for(var y = 0; y < 8; y++) {
+                pixelDivs.push([]);
+                waveletDivs.push([]);
+
+                for(var x = 0; x < 8; x++) {
+                    // eg.:
+                    // #pixels > .pixel16
+                    var pixelDiv = document.querySelector('#pixels > .pixel' + y + x);
+                    pixelDivs[y].push(pixelDiv);
+                    pixelDiv.style.opacity = 0.1;
+                    
+                    var waveletDiv = document.querySelector('#wavelets > .pixel' + y + x);
+                    waveletDivs[y].push(waveletDiv);
+                    waveletDiv.addEventListener('mousedown', function(e) {
+                        waveletDiv.addEventListener('mousemove', function(e) {
+                            var rect = e.target.getBoundingClientRect();
+                            var y = e.clientY - rect.top;  //y position within the element.
+
+                            // pixel32
+                            // charAt(5) == 3
+                            // charAt(6) == 2
+                            var wY = e.target.classList[0].charAt(5) - '0';
+                            var wX = e.target.classList[0].charAt(6) - '0';
+                            wavelet[wY][wX] = (y / e.target.getBoundingClientRect().height) * 256 - 128;
+                            console.log(wavelet[wY][wX]);
+                            fwt();
+                        });
+                    });
+                    waveletDiv.addEventListener('mouseup', function(e) {
+                        waveletDiv.removeEventListener('mousemove');
+                    });
+
+                    waveletDiv.addEventListener('click', function(e) {
+                        var rect = e.target.getBoundingClientRect();
+                        var y = e.clientY - rect.top;  //y position within the element.
+
+                        // pixel32
+                        // charAt(5) == 3
+                        // charAt(6) == 2
+                        var wY = e.target.classList[0].charAt(5) - '0';
+                        var wX = e.target.classList[0].charAt(6) - '0';
+                        wavelet[wY][wX] = (y / e.target.getBoundingClientRect().height) * 256 - 128;
+                        console.log(wavelet[wY][wX]);
+                        fwt();
+                    });
+                }
+            }
+            fwt();
+        })();
+
+        function fwt() {
+
+            waveletToPixels();
+
+            for(var y = 0; y < 8; y++) {
+                for(var x = 0; x < 8; x++) {
+                    pixelDivs[y][x].style.opacity = pixels[y][x] / 255;
+
+                    var height = ((wavelet[y][x] + 128) * 100 / 255) + '%';
+                    var back = 'linear-gradient(to bottom, #1e5799 0%,#1e5799 ' + height + ',#7db9e8 ' + height + ',#7db9e8 100%)'
+                    waveletDivs[y][x].style.background = back;
+                }
+            }
+        }
+
+        // wavelet -> pixels transformation
+        function waveletToPixels()
+        {
+            var tmp = [
+                [ 0, 0, 0, 0, 0, 0, 0, 0 ],
+                [ 0, 0, 0, 0, 0, 0, 0, 0 ],
+                [ 0, 0, 0, 0, 0, 0, 0, 0 ],
+                [ 0, 0, 0, 0, 0, 0, 0, 0 ],
+                [ 0, 0, 0, 0, 0, 0, 0, 0 ],
+                [ 0, 0, 0, 0, 0, 0, 0, 0 ],
+                [ 0, 0, 0, 0, 0, 0, 0, 0 ],
+                [ 0, 0, 0, 0, 0, 0, 0, 0 ]
+            ];
+
+            pixels = [];
+
+            for(var y = 0; y < 8; y++) {
+                pixels.push([]);
+                for(var x = 0; x < 8; x++) {
+                    pixels[y].push(wavelet[y][x]);
+                }
+            }
+
+            function iwave(size) {
+                var hsize = size/2;
+
+                // vertical
+                for(var y = 0; y < hsize; y++) {
+                    for(var x = 0; x < size; x++) {
+                        tmp[y*2][x] = pixels[y][x] + pixels[y+hsize][x];
+                        tmp[y*2+1][x] = pixels[y][x] - pixels[y+hsize][x];
+                    }
+                }
+
+                // horizontal
+                for(var y = 0; y < size; y++) {
+                    for(var x = 0; x < hsize; x++) {
+                        pixels[y][x*2] = tmp[y][x] + tmp[y][x+hsize];
+                        pixels[y][x*2+1] = tmp[y][x] - tmp[y][x+hsize];
+                    }
+                }
+            }
+
+            iwave(2);
+            iwave(4);
+            iwave(8);
+        }
+
+        // pixels -> wavelet transformation
+        function pixelsToWavelet(matrix) {
+            var tmp = [
+                [ 0, 0, 0, 0, 0, 0, 0, 0 ],
+                [ 0, 0, 0, 0, 0, 0, 0, 0 ],
+                [ 0, 0, 0, 0, 0, 0, 0, 0 ],
+                [ 0, 0, 0, 0, 0, 0, 0, 0 ],
+                [ 0, 0, 0, 0, 0, 0, 0, 0 ],
+                [ 0, 0, 0, 0, 0, 0, 0, 0 ],
+                [ 0, 0, 0, 0, 0, 0, 0, 0 ],
+                [ 0, 0, 0, 0, 0, 0, 0, 0 ]
+            ];
+
+            for(var y = 0; y < 8; y++) {
+                for(var x = 0; x < 8; x++) {
+                    matrix[y][x] -= 128;
+                }
+            }
+
+            function wave(size) {
+                var hsize = size/2;
+
+                // horizontal
+                for(var y = 0; y < size; y++) {
+                    for(var x = 0; x < hsize; x++) {
+                        var i = x*2;
+                        tmp[y][x] = (matrix[y][i] + matrix[y][i+1]) / 2;
+                        tmp[y][x+hsize] = (matrix[y][i] - matrix[y][i+1]) / 2;
+                    }
+                }
+
+                // vertical
+                for(var y = 0; y < hsize; y++) {
+                    for(var x = 0; x < size; x++) {
+                        var i = y*2;
+                        matrix[y][x] = (tmp[i][x] + tmp[i+1][x]) / 2;
+                        matrix[y+hsize][x] = (tmp[i][x] - tmp[i+1][x]) / 2;
+                    }
+                }
+            }
+
+            wave(8);
+            wave(4);
+            wave(2);            
+        }
+    </script>
+</body>
+</html>
