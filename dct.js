@@ -89,13 +89,14 @@ function dct2() {
         [ 0, 0, 0, 0, 0, 0, 0, 0 ]
     ];
     
+    // cos-transformation for each row
     for(var u = 0; u < 8; u++) {
         dct(tmp_matrix[u], pixels[u]);
     }
 
-    // transform matrix
     transform_matrix(tmp_matrix);
 
+    // cos-transformation for each column
     for(u = 0; u < 8; u++) {
         dct(dctMatrix[u], tmp_matrix[u]);
     }
@@ -137,12 +138,14 @@ function idct2() {
         }
     }
 
+    // inverse transformation for each column
     for(u = 0; u < 8; u++) {
         idct(tmp_matrix[u], pixels[u]);
     }
 
     transform_matrix(tmp_matrix);
 
+    // inverse transformation for each row
     for(u = 0; u < 8; u++) {
         idct(pixels[u], tmp_matrix[u]);
     }
@@ -157,6 +160,11 @@ function triggerMousePixelEvent(e) {
     // charAt(6) == 2
     var wY = e.target.classList[0].charAt(5) - '0';
     var wX = e.target.classList[0].charAt(6) - '0';
+
+    // relative to the point where the user clicked inside the box,
+    // calculate a number from 0 to 255 (pixelMin to pixelMax)
+    // eg. if clicking right in the center of the block, pixel brightness will be
+    // (1 - 0.5) * 256 = 128, clicking at the bottom will give you (1 - 1) * 256 = 0 (= black)
     pixels[wY][wX] = (1 - (y / e.target.getBoundingClientRect().height)) * (pixelMax - pixelMin) + pixelMin;
 
     if(pixels[wY][wX] > pixelMax)
@@ -191,7 +199,13 @@ function triggerMouseDctEvent(e) {
     // charAt(6) == 2
     var wY = e.target.classList[0].charAt(5) - '0';
     var wX = e.target.classList[0].charAt(6) - '0';
+
+    // relative to the point where the user clicked inside the box,
+    // calculate a number from -512 to 512 (dctMin to dctMax, may change)
+    // eg. if clicking right in the center of the block, dct coefficient will be
+    // (1 - 0.5) * 1024 - 512 = 0, clicking at the bottom will give you (1 - 1) * 1024 - 512 = -512
     dctMatrix[wY][wX] = -1 * ((y / e.target.getBoundingClientRect().height) * (dctMax - dctMin) + dctMin);
+    
     if(dctMatrix[wY][wX] > dctMax)
         dctMatrix[wY][wX] = dctMax;
     else if(dctMatrix[wY][wX] < dctMin)
@@ -257,7 +271,6 @@ function triggerMouseDctEvent(e) {
     dct2();
     updateBlocks();
 
-    var presetElement = document.querySelector('#presetSelection');
     presetElement.addEventListener('change', function() {
         mouseIsDown = false;
         var newSet = presets[presetElement.value];
