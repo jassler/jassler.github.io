@@ -166,6 +166,20 @@ function deepCopy(from, to) {
     }
 }
 
+function updateBlocks() {		
+
+    for(var y = 0; y < 8; y++) {
+        for(var x = 0; x < 8; x++) {
+            pixelDivs[y][x].style.opacity = pixels[y][x] / 255;
+
+            var height = (100 - ((wavelet[y][x] + 128) * 100 / 256)) + '%';
+            var back = 'linear-gradient(to bottom, #1e5799 0%,#1e5799 ' + height + ',#7db9e8 ' + height + ',#7db9e8 100%)';
+            waveletDivs[y][x].style.background = back;
+            waveletDivs[y][x].innerHTML = Math.round(wavelet[y][x]);
+        }
+    }
+}
+
 
 // register mouse events, save all visible pixel blocks in our pixel array
 (function() {
