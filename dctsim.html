@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>DCT Simulator</title>
+
+    <style>
+        .box {
+            display: inline-block;
+            position: relative;
+            background-color: black;
+            width: 45%;
+        }
+        .box::before {
+            content: "";
+            display: block;
+            padding-top: 100%;
+        }
+        .pixelgrid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-content: space-between;
+        }
+
+        .pixelgrid > div {
+            background-color: white;
+            width: 12%;
+            height: 12%;
+            opacity: 1;
+            cursor: pointer;
+            color: white;
+            text-align: center;
+            -webkit-touch-callout: none; /* iOS Safari */
+            -webkit-user-select: none; /* Safari */
+            -khtml-user-select: none; /* Konqueror HTML */
+            -moz-user-select: none; /* Firefox */
+            -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none; /* Non-prefixed version, currently
+                                supported by Chrome and Opera */
+        }
+
+        .pixelgrid > div:active {
+            cursor: grabbing;
+        }
+
+        #wavelets > div {
+            /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+            background: linear-gradient(to bottom, #1e5799 0%,#1e5799 52%,#7db9e8 52%,#7db9e8 100%);
+        }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <div id="pixels" class="pixelgrid">
+            <!-- Row 0 -->
+            <div class="pixel00"></div>
+            <div class="pixel01"></div>
+            <div class="pixel02"></div>
+            <div class="pixel03"></div>
+            <div class="pixel04"></div>
+            <div class="pixel05"></div>
+            <div class="pixel06"></div>
+            <div class="pixel07"></div>
+
+            <!-- Row 1 -->
+            <div class="pixel10"></div>
+            <div class="pixel11"></div>
+            <div class="pixel12"></div>
+            <div class="pixel13"></div>
+            <div class="pixel14"></div>
+            <div class="pixel15"></div>
+            <div class="pixel16"></div>
+            <div class="pixel17"></div>
+
+            <!-- Row 2 -->
+            <div class="pixel20"></div>
+            <div class="pixel21"></div>
+            <div class="pixel22"></div>
+            <div class="pixel23"></div>
+            <div class="pixel24"></div>
+            <div class="pixel25"></div>
+            <div class="pixel26"></div>
+            <div class="pixel27"></div>
+
+            <!-- Row 3 -->
+            <div class="pixel30"></div>
+            <div class="pixel31"></div>
+            <div class="pixel32"></div>
+            <div class="pixel33"></div>
+            <div class="pixel34"></div>
+            <div class="pixel35"></div>
+            <div class="pixel36"></div>
+            <div class="pixel37"></div>
+
+            <!-- Row 4 -->
+            <div class="pixel40"></div>
+            <div class="pixel41"></div>
+            <div class="pixel42"></div>
+            <div class="pixel43"></div>
+            <div class="pixel44"></div>
+            <div class="pixel45"></div>
+            <div class="pixel46"></div>
+            <div class="pixel47"></div>
+
+            <!-- Row 5 -->
+            <div class="pixel50"></div>
+            <div class="pixel51"></div>
+            <div class="pixel52"></div>
+            <div class="pixel53"></div>
+            <div class="pixel54"></div>
+            <div class="pixel55"></div>
+            <div class="pixel56"></div>
+            <div class="pixel57"></div>
+
+            <!-- Row 6 -->
+            <div class="pixel60"></div>
+            <div class="pixel61"></div>
+            <div class="pixel62"></div>
+            <div class="pixel63"></div>
+            <div class="pixel64"></div>
+            <div class="pixel65"></div>
+            <div class="pixel66"></div>
+            <div class="pixel67"></div>
+
+            <!-- Row 7 -->
+            <div class="pixel70"></div>
+            <div class="pixel71"></div>
+            <div class="pixel72"></div>
+            <div class="pixel73"></div>
+            <div class="pixel74"></div>
+            <div class="pixel75"></div>
+            <div class="pixel76"></div>
+            <div class="pixel77"></div>
+        </div>
+    </div>
+
+    <div class="box">
+        <div id="dcts" class="pixelgrid">
+            <div class="pixel00"></div>
+            <div class="pixel01"></div>
+            <div class="pixel02"></div>
+            <div class="pixel03"></div>
+            <div class="pixel04"></div>
+            <div class="pixel05"></div>
+            <div class="pixel06"></div>
+            <div class="pixel07"></div>
+            <div class="pixel10"></div>
+            <div class="pixel11"></div>
+            <div class="pixel12"></div>
+            <div class="pixel13"></div>
+            <div class="pixel14"></div>
+            <div class="pixel15"></div>
+            <div class="pixel16"></div>
+            <div class="pixel17"></div>
+            <div class="pixel20"></div>
+            <div class="pixel21"></div>
+            <div class="pixel22"></div>
+            <div class="pixel23"></div>
+            <div class="pixel24"></div>
+            <div class="pixel25"></div>
+            <div class="pixel26"></div>
+            <div class="pixel27"></div>
+            <div class="pixel30"></div>
+            <div class="pixel31"></div>
+            <div class="pixel32"></div>
+            <div class="pixel33"></div>
+            <div class="pixel34"></div>
+            <div class="pixel35"></div>
+            <div class="pixel36"></div>
+            <div class="pixel37"></div>
+            <div class="pixel40"></div>
+            <div class="pixel41"></div>
+            <div class="pixel42"></div>
+            <div class="pixel43"></div>
+            <div class="pixel44"></div>
+            <div class="pixel45"></div>
+            <div class="pixel46"></div>
+            <div class="pixel47"></div>
+            <div class="pixel50"></div>
+            <div class="pixel51"></div>
+            <div class="pixel52"></div>
+            <div class="pixel53"></div>
+            <div class="pixel54"></div>
+            <div class="pixel55"></div>
+            <div class="pixel56"></div>
+            <div class="pixel57"></div>
+            <div class="pixel60"></div>
+            <div class="pixel61"></div>
+            <div class="pixel62"></div>
+            <div class="pixel63"></div>
+            <div class="pixel64"></div>
+            <div class="pixel65"></div>
+            <div class="pixel66"></div>
+            <div class="pixel67"></div>
+            <div class="pixel70"></div>
+            <div class="pixel71"></div>
+            <div class="pixel72"></div>
+            <div class="pixel73"></div>
+            <div class="pixel74"></div>
+            <div class="pixel75"></div>
+            <div class="pixel76"></div>
+            <div class="pixel77"></div>
+        </div>
+    </div>
+
+    <select name="preset" id="presetSelection"></select>
+    
+    <script src="presets.js"></script>
+    <script src="dct.js"></script>
+</body>
+</html>
