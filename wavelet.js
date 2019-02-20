@@ -1,12 +1,12 @@
 var wavelet = [
-    [ 111.406,      0, 20.625, -20.625,   77.5,      0,      0,  -77.5 ],
-    [ -8.28125,      0, 19.0625, -19.0625,    -20,    -85,     85,     20 ],
-    [ 23.125, 23.125, 30.625, -30.625,    -50,  18.75, -18.75,     50 ],
-    [ -9.0625, -9.0625, -29.6875, 29.6875,   77.5,     -5,      5,  -77.5 ],
-    [     25,    -25,    -25,     25,    -25,      0,      0,     25 ],
-    [      0,   12.5,  -12.5,      0,      0,  -12.5,  -12.5,      0 ],
-    [      0,  68.75,  68.75,      0,      0, -28.75,  28.75,      0 ],
-    [    -25,     30,     30,    -25,     25,     -5,      5,    -25 ]
+    [ 0, 0, 0, 0, 0, 0, 0, 0 ],
+    [ 0, 0, 0, 0, 0, 0, 0, 0 ],
+    [ 0, 0, 0, 0, 0, 0, 0, 0 ],
+    [ 0, 0, 0, 0, 0, 0, 0, 0 ],
+    [ 0, 0, 0, 0, 0, 0, 0, 0 ],
+    [ 0, 0, 0, 0, 0, 0, 0, 0 ],
+    [ 0, 0, 0, 0, 0, 0, 0, 0 ],
+    [ 0, 0, 0, 0, 0, 0, 0, 0 ]
 ];
 
 // 8x8 grid of pixels
@@ -25,55 +25,6 @@ var pixels = [
 var pixelDivs = [];
 var waveletDivs = [];
 
-(function() {
-    var mouseIsDown = false;
-    document.addEventListener('mousedown', function() { mouseIsDown = true; });
-    document.addEventListener('mouseup', function() { mouseIsDown = false; });
-    
-    // initialize pixelDivs
-    for(var y = 0; y < 8; y++) {
-        pixelDivs.push([]);
-        waveletDivs.push([]);
-
-        for(var x = 0; x < 8; x++) {
-            // eg.:
-            // #pixels > .pixel16
-            var pixelDiv = document.querySelector('#pixels > .pixel' + y + x);
-            pixelDivs[y].push(pixelDiv);
-            pixelDiv.style.opacity = 0.1;
-            
-            // change pixel-values when clicking on pixel block
-            pixelDiv.addEventListener('mousemove', function(e) {
-                if(mouseIsDown) {
-                    triggerMousePixelEvent(e);
-                }
-            });
-
-            pixelDiv.addEventListener('click', function(e) {
-                triggerMousePixelEvent(e);
-            });
-            
-            // wavelet grid
-            var waveletDiv = document.querySelector('#wavelets > .pixel' + y + x);
-            waveletDivs[y].push(waveletDiv);
-            
-            // change wavelet-values when clicking on wavelet block
-            waveletDiv.addEventListener('mousemove', function(e) {
-                if(mouseIsDown) {
-                    triggerMouseWaveletEvent(e);
-                }
-            });
-
-            waveletDiv.addEventListener('click', function(e) {
-                triggerMouseWaveletEvent(e);
-            });
-        }
-    }
-
-    waveletToPixels();
-    updateBlocks();
-})();
-
 function triggerMousePixelEvent(e) {
     var rect = e.target.getBoundingClientRect();
     var y = e.clientY - rect.top;  //y position within the element.
@@ -84,7 +35,6 @@ function triggerMousePixelEvent(e) {
     var wY = e.target.classList[0].charAt(5) - '0';
     var wX = e.target.classList[0].charAt(6) - '0';
     pixels[wY][wX] = (1 - (y / e.target.getBoundingClientRect().height)) * 256;
-    console.log(pixels[wY][wX]);
 
     if(pixels[wY][wX] > 256)
         pixels[wY][wX] = 256;
@@ -171,6 +121,12 @@ function waveletToPixels()
     iwave(2);
     iwave(4);
     iwave(8);
+
+    for(var y = 0; y < 8; y++) {
+        for(var x = 0; x < 8; x++) {
+            pixels[y][x] += 128;
+        }
+    }
 }
 
 // pixels -> wavelet transformation
@@ -218,3 +174,69 @@ function pixelsToWavelet() {
     wave(4);
     wave(2);            
 }
+
+
+// register mouse events, save all visible pixel blocks in our pixel array
+(function() {
+    var mouseIsDown = false;
+    document.addEventListener('mousedown', function() { mouseIsDown = true; });
+    document.addEventListener('mouseup', function() { mouseIsDown = false; });
+
+    var presetElement = document.querySelector('#presetSelection');
+    var newSet = presets[presetElement.value];
+    if(newSet != null) {
+        pixels = presets[presetElement.value];
+    }
+    
+    // initialize pixelDivs
+    for(var y = 0; y < 8; y++) {
+        pixelDivs.push([]);
+        waveletDivs.push([]);
+
+        for(var x = 0; x < 8; x++) {
+            // eg.:
+            // #pixels > .pixel16
+            var pixelDiv = document.querySelector('#pixels > .pixel' + y + x);
+            pixelDivs[y].push(pixelDiv);
+            
+            // change pixel-values when clicking on pixel block
+            pixelDiv.addEventListener('mousemove', function(e) {
+                if(mouseIsDown) {
+                    triggerMousePixelEvent(e);
+                }
+            });
+
+            pixelDiv.addEventListener('click', function(e) {
+                triggerMousePixelEvent(e);
+            });
+            
+            // wavelet grid
+            var waveletDiv = document.querySelector('#wavelets > .pixel' + y + x);
+            waveletDivs[y].push(waveletDiv);
+            
+            // change wavelet-values when clicking on wavelet block
+            waveletDiv.addEventListener('mousemove', function(e) {
+                if(mouseIsDown) {
+                    triggerMouseWaveletEvent(e);
+                }
+            });
+
+            waveletDiv.addEventListener('click', function(e) {
+                triggerMouseWaveletEvent(e);
+            });
+        }
+    }
+
+    pixelsToWavelet();
+    updateBlocks();
+
+    presetElement.addEventListener('change', function() {
+        mouseIsDown = false;
+        var newSet = presets[presetElement.value];
+        if(newSet != null) {
+            pixels = newSet;
+            pixelsToWavelet();
+            updateBlocks();
+        }
+    });
+})();
