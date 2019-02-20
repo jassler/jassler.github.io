@@ -25,57 +25,36 @@ var pixels = [
 var pixelDivs = [];
 var waveletDivs = [];
 
-function triggerMousePixelEvent(e) {
-    var rect = e.target.getBoundingClientRect();
-    var y = e.clientY - rect.top;  //y position within the element.
+// evt -> mouse event that was triggered. Need it for y position inside pixel / wavelet block
+// min -> min value that can appear in block (eg. pixel should start at 0, wavelet at -128)
+// max -> max value that can appear in block (eg. pixel shouldn't be more than 255)
+// matrix -> 8x8 matrix that is affected, either pixel or wavelet
+// transformFunc -> transformation function, either wavelet to pixels or vice versa
+function triggerMouseEvent(evt, min, max, matrix, transformFunc) {
+    var rect = evt.target.getBoundingClientRect();
+    
+    // relative y-position to element
+    // 0 -> very top
+    // 1 -> very bottom
+    var y = (evt.clientY - rect.top) / rect.height;
 
-    // pixel32
+    var range = max - min;
+
+    // y- and x-position of pixel can be determined through the class name
+    // eg. if class name is "pixel32"
     // charAt(5) == 3
     // charAt(6) == 2
-    var wY = e.target.classList[0].charAt(5) - '0';
-    var wX = e.target.classList[0].charAt(6) - '0';
-    pixels[wY][wX] = (1 - (y / e.target.getBoundingClientRect().height)) * 256;
+    var wY = evt.target.classList[0].charAt(5) - '0';
+    var wX = evt.target.classList[0].charAt(6) - '0';
+    matrix[wY][wX] = (1 - y) * range + min;
 
-    if(pixels[wY][wX] > 256)
-        pixels[wY][wX] = 256;
-    else if(pixels[wY][wX] < 0)
-        pixels[wY][wX] = 0;
+    if(matrix[wY][wX] > max)
+        matrix[wY][wX] = max;
+    else if(matrix[wY][wX] < min)
+        matrix[wY][wX] = min;
     
-    pixelsToWavelet();
+    transformFunc();
     updateBlocks();
-}
-
-function triggerMouseWaveletEvent(e) {
-    var rect = e.target.getBoundingClientRect();
-    var y = e.clientY - rect.top;  //y position within the element.
-
-    // pixel32
-    // charAt(5) == 3
-    // charAt(6) == 2
-    var wY = e.target.classList[0].charAt(5) - '0';
-    var wX = e.target.classList[0].charAt(6) - '0';
-    wavelet[wY][wX] = -1 * ((y / e.target.getBoundingClientRect().height) * 256 - 128);
-    if(wavelet[wY][wX] > 128)
-        wavelet[wY][wX] = 128;
-    else if(wavelet[wY][wX] < -128)
-        wavelet[wY][wX] = -128;
-    
-    waveletToPixels();
-    updateBlocks();
-}
-
-function updateBlocks() {
-
-    for(var y = 0; y < 8; y++) {
-        for(var x = 0; x < 8; x++) {
-            pixelDivs[y][x].style.opacity = pixels[y][x] / 255;
-
-            var height = (100 - ((wavelet[y][x] + 128) * 100 / 256)) + '%';
-            var back = 'linear-gradient(to bottom, #1e5799 0%,#1e5799 ' + height + ',#7db9e8 ' + height + ',#7db9e8 100%)'
-            waveletDivs[y][x].style.background = back;
-            waveletDivs[y][x].innerHTML = Math.round(wavelet[y][x]);
-        }
-    }
 }
 
 // wavelet -> pixels transformation
@@ -175,6 +154,18 @@ function pixelsToWavelet() {
     wave(2);            
 }
 
+// deep copy 8x8 matrix
+function deepCopy(from, to) {
+    if(from == null || to == null)
+        return;
+
+    for(var y = 0; y < 8; y++) {
+        for(var x = 0; x < 8; x++) {
+            to[y][x] = from[y][x];
+        }
+    }
+}
+
 
 // register mouse events, save all visible pixel blocks in our pixel array
 (function() {
@@ -182,11 +173,10 @@ function pixelsToWavelet() {
     document.addEventListener('mousedown', function() { mouseIsDown = true; });
     document.addEventListener('mouseup', function() { mouseIsDown = false; });
 
+    // option selection from dropdown list
+    // usually starts with smiley face
     var presetElement = document.querySelector('#presetSelection');
-    var newSet = presets[presetElement.value];
-    if(newSet != null) {
-        pixels = presets[presetElement.value];
-    }
+    deepCopy(presets[presetElement.value], pixels);
     
     // initialize pixelDivs
     for(var y = 0; y < 8; y++) {
@@ -202,12 +192,12 @@ function pixelsToWavelet() {
             // change pixel-values when clicking on pixel block
             pixelDiv.addEventListener('mousemove', function(e) {
                 if(mouseIsDown) {
-                    triggerMousePixelEvent(e);
+                    triggerMouseEvent(e, 0, 255, pixels, pixelsToWavelet);
                 }
             });
 
             pixelDiv.addEventListener('click', function(e) {
-                triggerMousePixelEvent(e);
+                triggerMouseEvent(e, 0, 255, pixels, pixelsToWavelet);
             });
             
             // wavelet grid
@@ -217,12 +207,12 @@ function pixelsToWavelet() {
             // change wavelet-values when clicking on wavelet block
             waveletDiv.addEventListener('mousemove', function(e) {
                 if(mouseIsDown) {
-                    triggerMouseWaveletEvent(e);
+                    triggerMouseEvent(e, -128, 128, wavelet, waveletToPixels);
                 }
             });
 
             waveletDiv.addEventListener('click', function(e) {
-                triggerMouseWaveletEvent(e);
+                triggerMouseEvent(e, -128, 128, wavelet, waveletToPixels);
             });
         }
     }
@@ -231,12 +221,13 @@ function pixelsToWavelet() {
     updateBlocks();
 
     presetElement.addEventListener('change', function() {
+
+        // prevent but where mouse is registered as clicked
+        // even though we only registered a selection change
         mouseIsDown = false;
-        var newSet = presets[presetElement.value];
-        if(newSet != null) {
-            pixels = newSet;
-            pixelsToWavelet();
-            updateBlocks();
-        }
+
+        deepCopy(presets[presetElement.value], pixels);
+        pixelsToWavelet();
+        updateBlocks();
     });
 })();
