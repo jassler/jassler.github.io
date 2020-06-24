@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>MathJax Dynamic Math Test Page with ASCIIMath Input</title>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+<script type="text/javascript" id="MathJax-script" async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js">
+</script>
+
+<style>
+input {margin-top: .7em}
+.box {position: relative}
+.container {
+  border: 1px solid black;
+  padding: 10px;
+}
+</style>
+</head>
+<body>
+
+<script>
+  //
+  //  Use a closure to hide the local variables from the
+  //  global namespace
+  //
+  window.addEventListener('load', function() {
+
+    window.typeset = function (code) {
+      MathJax.startup.promise = MathJax.startup.promise
+        .then(() => {code(); return MathJax.typesetPromise()})
+        .catch((err) => console.log('Typeset failed: ' + err.message));
+      return MathJax.startup.promise;
+    }
+
+    window.ReplaceChars = function (txt, isSubjectTo) {
+      txt = txt.replace(/([a-zA-Z])(\d+)/g, '$1_{$2}')
+        .replace(/<=?/g, '\\leq')
+        .replace(/>=?/g, '\\geq');
+      
+      if(isSubjectTo) {
+        txt = txt.replace(/([+-])/g, '& $1{} &')
+          .replace(/(?=\n)/g, ' \\\\')
+          .replace(/(?=\\leq|\\geq|=)/g, '& ')
+      }
+
+      return txt;
+    }
+
+    window.AlignAmpersands = function(subjectTo, addMissingAmp, alignVertically) {
+      var lines = subjectTo.split('\\\\\n');
+
+      var splits = [];
+      var max = 0;
+
+      // split &, find line with most &
+      for(var i = 0; i < lines.length; i++) {
+        splits.push(lines[i].split('&'));
+        if(splits[i].length > max)
+          max = splits[i].length;
+      }
+
+      // add missing &
+      if(addMissingAmp) {
+        console.log('adding missing');
+        for(var i = 0; i < splits.length; i++) {
+          var missing = max - splits[i].length;
+          
+          if(missing > 0) {
+            var ampersands = [];
+            for(var amp = 0; amp < missing; amp++) {
+              // note & is readded when joining
+              ampersands.push('');
+            }
+
+            splits[i].splice.apply(splits[i], [splits[i].length - 1, 0].concat(ampersands));
+          }
+        }
+      } else {
+        console.log('not adding missing');
+      }
+
+      // find longest strings between ampersands
+      var longestElements = [];
+      for(var i = 0; i < max; i++)
+        longestElements.push(0);
+      
+      for(var i = 0; i < splits.length; i++) {
+        for(var j = 0; j < splits[i].length; j++) {
+          if(splits[i][j].length > longestElements[j])
+            longestElements[j] = splits[i][j].length;
+        }
+      }
+
+      // join with ampersands
+      for(var i = 0; i < splits.length; i++) {
+        lines[i] = '';
+        for(var j = 0; j < splits[i].length; j++) {
+          if(j > 0)
+            lines[i] += '&';
+          if(alignVertically)
+            lines[i] += ' '.repeat(longestElements[j] - splits[i][j].length)
+          lines[i] += splits[i][j];
+        }
+      }
+
+      return lines.join('\\\\\n');
+    }
+  
+
+    window.UpdateMath = function () {
+      var mathParts = [
+        '\\begin{align*}\n\\max &\\; ',                            // objective function
+        ' \\\\\n\\text{subject to} &\\;\n\\begin{alignedat}[t]{', // number of variables
+        '}\n',                                                   // subject to
+        '\n\\end{alignedat}\n\\end{align*}'
+      ];
+
+      var objFunction = ReplaceChars(document.querySelector('#MathInputObjective').value, false);
+      var subjectTo = ReplaceChars(document.querySelector('#subjectTos').value, true);
+      subjectTo = AlignAmpersands(subjectTo, document.querySelector('#addmissing').checked, document.querySelector('#alignvertically').checked);
+
+      var lines = subjectTo.split('\n');
+      var max = Math.floor(subjectTo.split('\n')[0].split('&').length / 2);
+
+      var amath = mathParts[0] + objFunction +
+                  mathParts[1] + max +
+                  mathParts[2] + subjectTo +
+                  mathParts[3];
+      
+      document.querySelector('#latexcode').innerHTML = amath;
+      
+      typeset(() => {
+        var out = document.querySelector('#MathOutput');
+        out.innerHTML = '$$' + amath + '$$';
+        return out;
+      });
+    }
+
+    window.UpdateMath();
+  });
+</script>
+
+<div class="container">
+<p>
+Maximize<br /> 
+<input id="MathInputObjective" size="80" value="x1 + x2 + x3" onkeyup="UpdateMath()" /><br />
+
+Subject to<br />
+<textarea name="MathInputSubjectTo" id="subjectTos" cols="30" rows="10" onkeyup="UpdateMath()">2x1 + x2 + x3 &lt; 5
+2.5x1 - 3x2 + x3 = 6
+x1 + x2 - 1.4x3 &gt; 12</textarea>
+</p>
+
+<label><input type="checkbox" name="addmissing" id="addmissing" checked onchange="UpdateMath()">Add missing &amp;</label><br />
+<label><input type="checkbox" name="vercicalalign" id="alignvertically" checked onchange="UpdateMath()">Vertically align &amp;</label><br />
+
+<pre>
+<code id="latexcode"></code>
+</pre>
+
+<div id="MathOutput" class="output"></div>
+</div>
+
+
+</body>
+</html>
