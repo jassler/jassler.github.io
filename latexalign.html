@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>MathJax Dynamic Math Test Page with ASCIIMath Input</title>
+<title>Constraint aligner</title>
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 
 <script type="text/javascript" id="MathJax-script" async
@@ -9,157 +9,241 @@
 </script>
 
 <style>
-input {margin-top: .7em}
+input:not([type='checkbox']), textarea {
+  margin-bottom: .7em;
+  width: 100%;
+}
+
 .box {position: relative}
 .container {
   border: 1px solid black;
   padding: 10px;
+}
+
+/* loader from here: https://loading.io/css/ */
+.lds-dual-ring {
+  display: inline-block;
+  width: 80px;
+  height: 80px;
+}
+.lds-dual-ring:after {
+  content: " ";
+  display: block;
+  width: 64px;
+  height: 64px;
+  margin: 8px;
+  border-radius: 50%;
+  border: 6px solid #000;
+  border-color: #000 transparent #000 transparent;
+  animation: lds-dual-ring 1.2s linear infinite;
+}
+@keyframes lds-dual-ring {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 </style>
 </head>
 <body>
 
 <script>
-  //
-  //  Use a closure to hide the local variables from the
-  //  global namespace
-  //
-  window.addEventListener('load', function() {
 
-    window.typeset = function (code) {
-      MathJax.startup.promise = MathJax.startup.promise
-        .then(() => {code(); return MathJax.typesetPromise()})
-        .catch((err) => console.log('Typeset failed: ' + err.message));
-      return MathJax.startup.promise;
+  // only call when MathJax has loaded
+  function typeset(code) {
+    MathJax.startup.promise = MathJax.startup.promise
+      .then(() => {code(); return MathJax.typesetPromise()})
+      .catch((err) => console.log('Typeset failed: ' + err.message));
+    return MathJax.startup.promise;
+  }
+
+  /* Replace "x1" with "x_{1}"
+   * Replace < with \\leq and > with \\geq
+   * Replace "+" with "& +{} &"
+   */
+  function replaceChars(txt, surroundOperatorsWithAmpersands) {
+    txt = txt.replace(/([a-zA-Z])(\d+)/g, '$1_{$2}')
+      .replace(/<=?/g, '\\leq')
+      .replace(/>=?/g, '\\geq');
+    
+    if(surroundOperatorsWithAmpersands) {
+      txt = txt.replace(/([+-])/g, '& $1{} &')
+        .replace(/(?=\\leq|\\geq|=)/g, '& ')
     }
 
-    window.ReplaceChars = function (txt, isSubjectTo) {
-      txt = txt.replace(/([a-zA-Z])(\d+)/g, '$1_{$2}')
-        .replace(/<=?/g, '\\leq')
-        .replace(/>=?/g, '\\geq');
+    return txt;
+  }
+
+  /* Add missing spaces to each index such that every column has the same length.
+    * If trailing, spaces are added at the end, otherwise at the beginning
+    * 
+    * Input:
+    * [
+    *   [ '123', 'a', 'bc', '1', 'somethingreallylong' ],
+    *   [ '1', 'abc', '', '123', 'short' ]
+    * ]
+    *
+    * Output:
+    * [
+    *   [ '123', '  a', 'bc', '  1', 'somethingreallylong' ],
+    *   [ '  1', 'abc', '  ', '123', '              short' ]
+    * ]
+    */
+  function makeColumnsSameLength(splits, trailing = false) {
+
+    // find longest strings
+    var longestElements = [];
+    
+    for(var i = 0; i < splits.length; i++) {
+      for(var j = 0; j < splits[i].length; j++) {
+        if(splits[i][j].length > (longestElements[j] || 0))
+          longestElements[j] = splits[i][j].length;
+      }
+    }
+
+    // add spaces
+    for(var i = 0; i < splits.length; i++) {
+      for(var j = 0; j < splits[i].length; j++) {
+
+        var diff = longestElements[j] - splits[i][j].length;
+        if(diff > 0) {
+          if(trailing)
+            splits[i][j] = splits[i][j] + ' '.repeat(diff);
+          else
+            splits[i][j] = ' '.repeat(diff) + splits[i][j];
+        }
+
+      }
+    }
+  }
+
+  function rearrangeVars(splits) {
+    var vars = {}
+    for(var r = 0; r < splits.length; r++) {
+      for(var c = 0; c < splits[r].length; c++) {
+        var newVar = /(?:[a-zA-Z]+)(?:_\{\d+\})?/.exec(splits[r][c]);
+        if(newVar === null)
+          continue;
+        
+        if(!vars.hasOwnProperty(newVar))
+          vars[newVar[0]] = [ [r, c] ];
+        else
+          vars[newVar[0]].push([r, c]);
+      }
+    }
+
+    var sortedKeys = Object.keys(vars).sort();
+    for(var i = 0; i < sortedKeys.length; i++) {
       
-      if(isSubjectTo) {
-        txt = txt.replace(/([+-])/g, '& $1{} &')
-          .replace(/(?=\n)/g, ' \\\\')
-          .replace(/(?=\\leq|\\geq|=)/g, '& ')
-      }
+    }
+  }
 
-      return txt;
+  function alignAmpersands(subjectTo, addMissingAmp, alignVertically, alignWith = '&') {
+    var lines = subjectTo.split('\n');
+
+    var splits = [];
+    var max = 0;
+
+    // split &, find line with most &
+    for(var i = 0; i < lines.length; i++) {
+      splits.push(lines[i].split(alignWith));
+      if(splits[i].length > max)
+        max = splits[i].length;
     }
 
-    window.AlignAmpersands = function(subjectTo, addMissingAmp, alignVertically) {
-      var lines = subjectTo.split('\\\\\n');
-
-      var splits = [];
-      var max = 0;
-
-      // split &, find line with most &
-      for(var i = 0; i < lines.length; i++) {
-        splits.push(lines[i].split('&'));
-        if(splits[i].length > max)
-          max = splits[i].length;
-      }
-
-      // add missing &
-      if(addMissingAmp) {
-        console.log('adding missing');
-        for(var i = 0; i < splits.length; i++) {
-          var missing = max - splits[i].length;
-          
-          if(missing > 0) {
-            var ampersands = [];
-            for(var amp = 0; amp < missing; amp++) {
-              // note & is readded when joining
-              ampersands.push('');
-            }
-
-            splits[i].splice.apply(splits[i], [splits[i].length - 1, 0].concat(ampersands));
+    // add missing &
+    if(addMissingAmp) {
+      for(var i = 0; i < splits.length; i++) {
+        var missing = max - splits[i].length;
+        
+        if(missing > 0) {
+          var ampersands = [];
+          for(var amp = 0; amp < missing; amp++) {
+            // note & is readded when joining
+            ampersands.push('');
           }
-        }
-      } else {
-        console.log('not adding missing');
-      }
 
-      // find longest strings between ampersands
-      var longestElements = [];
-      for(var i = 0; i < max; i++)
-        longestElements.push(0);
-      
-      for(var i = 0; i < splits.length; i++) {
-        for(var j = 0; j < splits[i].length; j++) {
-          if(splits[i][j].length > longestElements[j])
-            longestElements[j] = splits[i][j].length;
+          splits[i].splice.apply(splits[i], [splits[i].length - 1, 0].concat(ampersands));
         }
       }
 
-      // join with ampersands
-      for(var i = 0; i < splits.length; i++) {
-        lines[i] = '';
-        for(var j = 0; j < splits[i].length; j++) {
-          if(j > 0)
-            lines[i] += '&';
-          if(alignVertically)
-            lines[i] += ' '.repeat(longestElements[j] - splits[i][j].length)
-          lines[i] += splits[i][j];
-        }
-      }
-
-      return lines.join('\\\\\n');
+      rearrangeVars(splits);
     }
-  
 
-    window.UpdateMath = function () {
-      var mathParts = [
-        '\\begin{align*}\n\\max              &\\; ',               // objective function
-        ' \\\\\n\\text{subject to} &\\;\n\\begin{alignedat}[t]{', // number of variables
-        '}\n',                                                   // subject to
-        '\n\\end{alignedat}\n\\end{align*}'
-      ];
+    // find longest strings between ampersands
+    if(alignVertically)
+      makeColumnsSameLength(splits);
 
-      var objFunction = ReplaceChars(document.querySelector('#MathInputObjective').value, false);
-      var subjectTo = ReplaceChars(document.querySelector('#subjectTos').value, true);
-      subjectTo = AlignAmpersands(subjectTo, document.querySelector('#addmissing').checked, document.querySelector('#alignvertically').checked);
+    // join with ampersands
+    for(var i = 0; i < splits.length; i++) {
+      lines[i] = splits[i].join(alignWith);
+    }
 
-      var lines = subjectTo.split('\n');
-      var max = Math.floor(subjectTo.split('\n')[0].split('&').length / 2);
+    return lines.join('\n');
+  }
 
-      var amath = mathParts[0] + objFunction +
-                  mathParts[1] + max +
-                  mathParts[2] + subjectTo +
-                  mathParts[3];
-      
-      document.querySelector('#latexcode').innerHTML = amath;
-      
+  function updateMath() {
+    var mathParts = [
+      '\\begin{align*}\n\\max              &\\; ',               // objective function
+      ' \\\\\n\\text{subject to} &\\;\n\\begin{alignedat}[t]{', // number of variables
+      '}\n',                                                   // subject to
+      '\n\\end{alignedat}\n\\end{align*}'
+    ];
+
+    var objFunction = replaceChars(document.querySelector('#MathInputObjective').value, false);
+    var subjectTo = replaceChars(document.querySelector('#subjectTos').value, true);
+    subjectTo = alignAmpersands(subjectTo, document.querySelector('#addmissing').checked, document.querySelector('#alignvertically').checked);
+    subjectTo = subjectTo.replace(/(?=\n)/g, ' \\\\');
+
+    var lines = subjectTo.split('\n');
+    var max = Math.floor(subjectTo.split('\n')[0].split('&').length / 2);
+
+    var amath = mathParts[0] + objFunction +
+                mathParts[1] + max +
+                mathParts[2] + subjectTo +
+                mathParts[3];
+    
+    document.querySelector('#latexcode').innerHTML = amath;
+    
+    // make sure MathJax has loaded
+    if(window.MathJax) {
       typeset(() => {
         var out = document.querySelector('#MathOutput');
         out.innerHTML = '$$' + amath + '$$';
         return out;
       });
     }
+  }
 
-    window.UpdateMath();
+  // render math part as soon as MathJax has loaded
+  window.addEventListener('load', function() {
+    var out = document.querySelector('#MathOutput');
+    out.classList.remove('lds-dual-ring');
+    window.updateMath();
   });
 </script>
 
 <div class="container">
 <p>
 Maximize<br /> 
-<input id="MathInputObjective" size="80" value="x1 + x2 + x3" onkeyup="UpdateMath()" /><br />
+<input id="MathInputObjective" size="80" value="x1 + x2 + x3" onkeyup="updateMath()" /><br />
 
 Subject to<br />
-<textarea name="MathInputSubjectTo" id="subjectTos" cols="30" rows="10" onkeyup="UpdateMath()">2x1 + x2 + x3 &lt; 5
+<textarea name="MathInputSubjectTo" id="subjectTos" cols="30" rows="10" onkeyup="updateMath()">2x1 + x2 + x3 &lt; 5
 2.5x1 - 3x2 + x3 = 6
 x1 + x2 - 1.4x3 &gt; 12</textarea>
 </p>
 
-<label><input type="checkbox" name="addmissing" id="addmissing" checked onchange="UpdateMath()">Add missing &amp;</label><br />
-<label><input type="checkbox" name="vercicalalign" id="alignvertically" checked onchange="UpdateMath()">Vertically align &amp;</label><br />
+<label><input type="checkbox" name="addmissing" id="addmissing" checked onchange="updateMath()">Add missing &amp;</label><br />
+<label><input type="checkbox" name="vercicalalign" id="alignvertically" checked onchange="updateMath()">Vertically align &amp;</label><br />
 
 <pre>
 <code id="latexcode"></code>
 </pre>
 
-<div id="MathOutput" class="output"></div>
+<div id="MathOutput" class="output lds-dual-ring"></div>
 </div>
 
 
