@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pausencountdown</title>
+
+    <style>
+        #timeDisplay {
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(220, 220, 220, 0.8);
+            font-family: Verdana, Geneva, Tahoma, sans-serif;
+            font-size: 4em;
+            text-align: center;
+
+            border-radius: 0.25em;
+            padding: 0.5em 1em;
+            z-index: 1;
+        }
+
+        .background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            z-index: 0;
+        }
+
+        #settings {
+            position: absolute;
+            display: none;
+            background-color: rgba(220, 220, 220, 0.8);
+            border-radius: 1em;
+        }
+
+        #output {
+            background-color: rgba(250, 250, 250, 0.8);
+        }
+    </style>
+
+
+    <script>
+        /*
+         * All things countdown formatting n stuff
+         */
+         function calculateSecondsLeft(inputString) {
+            try {
+                const now = new Date();
+                const splitted = inputString.split(':');
+                const minute = splitted[splitted.length-1];
+                var hour, day;
+
+                if(splitted.length > 1)
+                    hour = splitted[splitted.length-2];
+                else if(minute < now.getMinutes())
+                    hour = now.getHours() + 1;
+                else
+                    hour = now.getHours();
+                
+                day = now.getDate();
+                if(hour < now.getHours())
+                    day++;
+                
+                const end = new Date(now.getFullYear(), now.getMonth(), day, hour, minute);
+                return Math.floor((end.getTime() - now.getTime()) / 1000);
+            } catch(e) {
+                return -1;
+            }
+        }
+
+
+        function formatSeconds(seconds) {
+            if(seconds < 0)
+                return 'Session starting at any moment';
+
+            var result = (seconds % 60).toString();
+            if(result.length < 2)
+                result = '0' + result;
+            
+            result = ':' + result;
+            
+            seconds = Math.floor(seconds / 60);
+            result = seconds.toString() + result;
+            if(seconds < 10)
+                result = '0' + result;
+            
+            return result;
+        }
+    </script>
+
+</head>
+<body>
+
+    <div class="background"></div>
+    <div id="timeDisplay">Hello there</div>
+
+    <div id="settings">
+        <h3>Pause bis</h3>
+        <p>(zB. 30 für Pause bis zur nächsten Minute 30, oder 14:30)</p>
+        <input type="url" id="time">
+
+        <h3>Position</h3>
+        <input type="range" min="0" max="100" value="50" class="slider" id="top">
+        <input type="range" min="0" max="100" value="50" class="slider" id="left">
+
+        <h3>Font Size</h3>
+        <input type="range" min="1" max="25" value="4" class="slider" id="fontSize">
+
+        <h3>Hintergrundbild</h3>
+        <input type="url" id="backgroundInput">
+
+        <p id="output"></p>
+    </div>
+    
+
+    <script>
+        const parsedUrl = new URL(window.location.href);
+        const params = parsedUrl.searchParams;
+        
+        
+        // time display
+        const div = document.querySelector('#timeDisplay');
+        const background = document.querySelector('.background')
+        var seconds = -1;
+
+        setInterval(function() {
+            if(seconds >= 0) {
+                // note seconds is allowed to reach -1
+                seconds--;
+                div.innerHTML = formatSeconds(seconds);
+            }
+        }, 1000);
+
+        // settings input
+        const settingsEl = {
+            time: document.querySelector('#time'),
+            top: document.querySelector('#top'),
+            left: document.querySelector('#left'),
+            fontSize: document.querySelector('#fontSize'),
+            background: document.querySelector('#backgroundInput'),
+            
+            output: document.querySelector('#output'),
+            settings: document.querySelector('#settings')
+        }
+
+        function updateUrl() {
+            var finalUrl = parsedUrl.pathname;
+            var hadFirst = false;
+
+            for(const key of Object.keys(testInput)) {
+                if(testInput[key] != defaults[key]) {
+                    finalUrl += hadFirst ? '&' : '?';
+                    hadFirst = true;
+
+                    finalUrl += key + '=' + testInput[key];
+                }
+            }
+
+            settingsEl.output.innerHTML = finalUrl;
+        }
+
+        function updateStyles() {
+            for(const key of Object.keys(testInput)) {
+
+                if(key === 'background' && testInput[key] !== '') {
+                    background.style.backgroundImage = 'url(' + testInput[key] + ')';
+
+                } else if(key === 'time') {
+                    seconds = calculateSecondsLeft(testInput.time);
+                    div.innerHTML = formatSeconds(seconds);
+                    if(seconds > 0) {
+                        // get number at beginning of string
+                        div.style.fontSize = testInput.fontSize.replace(/(^\d+)(.+$)/i,'$1') + 'em';
+
+                    } else {
+                        // done message is four times smaller
+                        div.style.fontSize = (testInput.fontSize.replace(/(^\d+)(.+$)/i,'$1') / 4) + 'em';
+                    }
+
+                } else if(key === 'fontSize') {
+                    div.style[key] = testInput[key] + 'em';
+                    
+                } else if(key == 'top' || key == 'left') {
+                    // assume it's time display style
+                    div.style[key] = testInput[key] + '%';
+                } else {
+                    div.style[key] = testInput[key];
+
+                }
+            }
+        }
+
+        /*
+         * Setting defaults and actual settings
+         */
+         const defaults = {
+            top: '50%',
+            left: '50%',
+            background: '',
+            time: '',
+            fontSize: '4em'
+        }
+
+        // copy default settings, at least where it's not set in the get request
+        const testInput = {};
+        for(const key of Object.keys(defaults)) {
+            testInput[key] = params.get(key) ?? defaults[key];
+            
+            settingsEl[key].value = testInput[key];
+            settingsEl[key].oninput = function() {
+                testInput[key] = this.value;
+                updateStyles();
+                updateUrl();
+            }
+        }
+
+        updateStyles();
+
+        document.addEventListener('keydown', function(event) {
+            if(event.keyCode == 37) {
+                settings.style.display = 'none';
+            }
+            else if(event.keyCode == 39) {
+                settings.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
