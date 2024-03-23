@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <!--
-  _      _                        _
->(.)__ <(.)__                   =(.)__
- (___/  (___/                    (___/ 
+       _      _                        _
+MEOW >(.)__ <(.)__                   =(.)__
+      (___/  (___/                    (___/ 
 -->
 <html>
   <head>
@@ -122,15 +122,15 @@
         let maxCluesCol = 8;
 
         for (let row = 0; row < 21 + maxCluesRow; row++) {
-          // 5 rows of column clues + 21 rows of cells
           for (let col = 0; col < 21 + maxCluesCol; col++) {
-            // 5 columns of row clues + 21 columns of cells
+
             if (row < maxCluesCol && col < maxCluesRow) {
               // This is the top-left corner (intersection of row and column clues)
               const clueCell = document.createElement('div');
               clueCell.classList.add('clue');
               clueCell.addEventListener('mousedown', (e) => e.preventDefault());
               grid.appendChild(clueCell);
+
             } else if (row < maxCluesCol) {
               // This is a column clue cell
               const clueCell = document.createElement('div');
@@ -142,6 +142,7 @@
                 clueCell.textContent = columnClues[clueIndex][r];
               }
               grid.appendChild(clueCell);
+
             } else if (col < maxCluesRow) {
               // This is a row clue cell
               const clueCell = document.createElement('div');
@@ -153,6 +154,7 @@
                 clueCell.textContent = rowClues[clueIndex][c];
               }
               grid.appendChild(clueCell);
+              
             } else {
               // This is a cell in the main grid
               const cell = document.createElement('div');
