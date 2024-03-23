@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<!--
+  _      _                        _
+>(.)__ <(.)__                   =(.)__
+ (___/  (___/                    (___/ 
+-->
+<html>
+  <head>
+    <title>Nonogram Puzzle</title>
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        margin-top: 10px;
+        background-color: #101010;
+        font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+      }
+
+      #nonogram {
+        display: grid;
+        grid-template-columns: repeat(8, 30px) repeat(21, 30px);
+        grid-template-rows: repeat(8, 30px) repeat(21, 30px);
+        background-color: #f5f5f5;
+      }
+
+      .cell,
+      .clue {
+        width: 30px;
+        height: 30px;
+        border: 0.5px solid #ddd;
+        box-sizing: border-box;
+        text-align: center;
+        line-height: 30px;
+      }
+
+      .filled {
+        background-color: black !important;
+        border-color: black !important;
+      }
+
+      .cell {
+        cursor: pointer;
+      }
+
+      .clue {
+        background-color: #585858;
+        color: white;
+        border: none;
+        pointer-events: none;
+      }
+
+      .highlight {
+        background-color: #e8e8e8;
+      }
+      .highlightc {
+        background-color: #686868;
+      }
+    </style>
+  </head>
+  <body>
+    <div id='nonogram'></div>
+    
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        const grid = document.getElementById('nonogram');
+        let isDragging = false;
+        let isFilling = true;
+        const rowClues = [
+          // Each sub-array represents the clues for a row
+          [7, 5, 7],
+          [1, 1, 1, 1, 1, 1, 1],
+          [1, 3, 1, 1, 1, 3, 1],
+          [1, 3, 1, 4, 1, 3, 1],
+          [1, 3, 1, 1, 1, 3, 1],
+          [1, 1, 2, 1, 1, 1],
+          [7, 1, 1, 1, 7],
+          [4],
+          [2, 3, 1, 1, 1, 4],
+          [2, 1, 8, 1, 1],
+          [1, 3, 2, 1, 1, 2, 1],
+          [1, 2, 1, 1, 1, 2],
+          [1, 2, 5, 1, 2],
+          [1, 2, 4],
+          [7, 1, 2, 2, 1],
+          [1, 1, 1, 2, 2, 1],
+          [1, 3, 1, 1, 2, 3, 1],
+          [1, 3, 1, 2, 3, 2],
+          [1, 3, 1, 2, 1, 1, 1],
+          [1, 1, 2, 3],
+          [7, 1, 5, 1],
+        ];
+        const columnClues = [
+          // Each sub-array represents the clues for a column
+          [7, 3, 1, 7],
+          [1, 1, 2, 1, 1, 1],
+          [1, 3, 1, 1, 1, 3, 1],
+          [1, 3, 1, 1, 1, 3, 1],
+          [1, 3, 1, 1, 2, 1, 3, 1],
+          [1, 1, 5, 1, 1],
+          [7, 1, 1, 1, 7],
+          [1, 2],
+          [4, 2, 2, 2, 2, 2],
+          [1, 1, 1, 6, 1],
+          [2, 1, 2, 1, 1, 1, 1],
+          [1, 1, 1, 4, 4],
+          [2, 1, 2, 1, 4, 1, 1],
+          [3, 2, 1, 2],
+          [7, 1, 1, 3],
+          [1, 1, 1, 1, 3, 2],
+          [1, 3, 1, 2, 3, 2, 1],
+          [1, 3, 1, 1, 1, 2, 1],
+          [1, 3, 1, 1, 1, 1],
+          [1, 1, 5, 4],
+          [7, 1, 2, 1, 1],
+        ];
+
+        let maxCluesRow = 8;
+        let maxCluesCol = 8;
+
+        for (let row = 0; row < 21 + maxCluesRow; row++) {
+          // 5 rows of column clues + 21 rows of cells
+          for (let col = 0; col < 21 + maxCluesCol; col++) {
+            // 5 columns of row clues + 21 columns of cells
+            if (row < maxCluesCol && col < maxCluesRow) {
+              // This is the top-left corner (intersection of row and column clues)
+              const clueCell = document.createElement('div');
+              clueCell.classList.add('clue');
+              clueCell.addEventListener('mousedown', (e) => e.preventDefault());
+              grid.appendChild(clueCell);
+            } else if (row < maxCluesCol) {
+              // This is a column clue cell
+              const clueCell = document.createElement('div');
+              clueCell.classList.add('clue');
+              clueCell.dataset.col = col;
+              const clueIndex = col - maxCluesRow;
+              const r = row - (maxCluesCol - columnClues[clueIndex].length);
+              if (columnClues[clueIndex] && columnClues[clueIndex][r] != null) {
+                clueCell.textContent = columnClues[clueIndex][r];
+              }
+              grid.appendChild(clueCell);
+            } else if (col < maxCluesRow) {
+              // This is a row clue cell
+              const clueCell = document.createElement('div');
+              clueCell.classList.add('clue');
+              clueCell.dataset.row = row;
+              const clueIndex = row - maxCluesCol;
+              const c = col - (maxCluesRow - rowClues[clueIndex].length);
+              if (rowClues[clueIndex] && rowClues[clueIndex][c] != null) {
+                clueCell.textContent = rowClues[clueIndex][c];
+              }
+              grid.appendChild(clueCell);
+            } else {
+              // This is a cell in the main grid
+              const cell = document.createElement('div');
+              cell.classList.add('cell');
+              cell.dataset.row = row;
+              cell.dataset.col = col;
+
+              cell.addEventListener('mousedown', function (e) {
+                e.preventDefault(); // Prevent text selection
+                isDragging = true;
+                if (cell.classList.contains('filled')) {
+                  isFilling = false;
+                  cell.classList.remove('filled');
+                } else {
+                  isFilling = true;
+                  cell.classList.add('filled');
+                }
+              });
+
+              cell.addEventListener('mouseenter', function () {
+                if (isDragging) {
+                  if (isFilling) {
+                    cell.classList.add('filled');
+                  } else {
+                    cell.classList.remove('filled');
+                  }
+                }
+                highlightRowCol(row, col, true);
+              });
+
+              cell.addEventListener('mouseleave', function () {
+                highlightRowCol(row, col, false);
+              });
+
+              cell.addEventListener('mouseup', function () {
+                isDragging = false;
+              });
+              grid.appendChild(cell);
+            }
+          }
+
+          // Stop dragging when the mouse leaves the grid or on mouseup
+          grid.addEventListener('mouseleave', function () {
+            isDragging = false;
+          });
+
+          document.addEventListener('mouseup', function () {
+            isDragging = false;
+          });
+        }
+
+        function highlightRowCol(row, col, highlight) {
+          document.querySelectorAll(`.cell[data-row='${row}']`).forEach((cell) => {
+            cell.classList.toggle('highlight', highlight);
+          });
+          document.querySelectorAll(`.cell[data-col='${col}']`).forEach((cell) => {
+            cell.classList.toggle('highlight', highlight);
+          });
+          document.querySelectorAll(`.clue[data-row='${row}']`).forEach((cell) => {
+            cell.classList.toggle('highlightc', highlight);
+          });
+          document.querySelectorAll(`.clue[data-col='${col}']`).forEach((cell) => {
+            cell.classList.toggle('highlightc', highlight);
+          });
+        }
+      });
+    </script>
+  </body>
+</html>
