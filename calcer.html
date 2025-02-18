@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checksum Validator</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h2 {
+            color: #333;
+        }
+        .wrapper {
+            display: flex;
+            justify-content: center;
+            gap: 20px; /* Adjust spacing between containers */
+            flex-wrap: wrap; /* Ensures wrapping on small screens */
+        }
+
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            flex: 1 1 45%; /* Allow containers to shrink and grow */
+            min-width: 300px; /* Prevents them from becoming too small */
+            margin: 10px; /* Optional, to add spacing */
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 90%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            margin-top: 15px;
+            padding: 10px 15px;
+            font-size: 16px;
+            color: white;
+            background-color: #007BFF;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        pre {
+            text-align: left;
+            background: #222;
+            color: #0f0;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        svg {
+            box-shadow: 1px 1px 2px 1px rgba(0, 0, 255, .2);
+        }
+        .bar {
+            fill: steelblue;
+        }
+        .bar:hover {
+            fill: orange;
+        }
+        .axis-label {
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+
+    
+    <div class="wrapper">
+        <div class="container">
+            <h2>Checksum Generierer</h2>
+            <label for="nrOfOptions">Anzahl an Antworten pro Frage:</label>
+            <input type="text" id="nrOfOptions" placeholder="Beispiel: 4,4,2">
+
+            <label for="options">Mögliche Zahlen, die zu addieren sind:</label>
+            <input type="text" id="options" placeholder="Beispiel: 0,5,10,15,20">
+
+            <button onclick="generateCombinations()">L&ouml;sungen generieren</button>
+            
+            <h3>Output:</h3>
+            <pre id="output">Ergebnisse erscheinen hier...</pre>
+        
+        </div>
+
+        <div class="container">
+            <h2>Checksum Validierer</h2>
+            <label for="taskSets">L&ouml;sungen analysieren (sag, wie oft jede Summe erreicht werden kann):</label>
+            <textarea id="taskSets" rows="4" placeholder="Beispiel: [[1,2,4,5],[9,3]]"></textarea>
+            
+            <button onclick="copyFromLeft()" style="background-color: black;">&#x2398; Punkte vom Generierer &uuml;bernehmen</button>
+            <button onclick="calculateSums()">Checksums berechnen</button>
+            
+            <svg style="width:95%" width="800" height="330"></svg>
+            <pre id="output2">Ergebnisse erscheinen hier...</pre>
+        </div>
+    </div>
+
+    <script>
+
+// Expects lists of points inside another list, i.e.,
+// [
+//   [ 1, 2, 4, 5 ],
+//   [ 3, 9 ],
+//   [ 0, 1, 4, 7, 12 ]
+// ]
+function calculateAllSolutions(tasks) {
+    let solutions = {};
+    
+    function investigate(i, sum) {
+        if(i >= tasks.length) {
+            solutions[sum] = (solutions[sum] || 0) + 1;
+            return;
+        }
+
+        for(let points of tasks[i]) {
+            investigate(i + 1, sum + points);
+        }
+    }
+
+    investigate(0, 0);
+    return solutions;
+}
+
+function shuffleArray(array) {
+    for (let i = array.length - 1; i >= 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+
+function mergeSortedArrays(arr1, arr2) {
+    let merged = [];
+    let i = 0, j = 0;
+
+    while (i < arr1.length && j < arr2.length) {
+        if (arr1[i] < arr2[j]) {
+            merged.push(arr1[i++]);
+        } else {
+            merged.push(arr2[j++]);
+        }
+    }
+
+    // Add remaining elements
+    while (i < arr1.length) merged.push(arr1[i++]);
+    while (j < arr2.length) merged.push(arr2[j++]);
+
+    return merged;
+}
+
+function isSorted(arr) {
+    for(let i = 1; i < arr.length; i++) {
+        if(arr[i-1] >= arr[i]) {
+            console.error('Array is not sorted.', arr, `arr[${i-1}] = ${arr[i-1]} ≥ ${arr[i]} = arr[${i}]`);
+            return;
+        }
+    }
+}
+
+// a and b must be sorted arrays
+function isIntersectionEmpty(a, b) {
+    let i = 0;
+    let j = 0;
+    while(i < a.length && j < b.length) {
+        if(a[i] === b[j]) {
+            return false;
+        }
+        if(a[i] < b[j]) {
+            i++;
+        } else {
+            j++;
+        }
+    }
+    return true;
+}
+
+// expects a list of numbers representing the number of possible solutions for each task, i.e.,
+// [ 4, 4, 2, 2, 5 ]
+// 
+// max is inclusive (if min=0 and max=5, then we get tasks with 0, 1, 2, 3, 4, or 5 points)
+function generateRandomUniquePointDistributionsSoStudentsCannotEasilyDetermineTheCorrectAnswers(nrOfOptions, options = [0,1,2,3,4,5,6,7,8,9,10]) {
+    // let options = [...Array(max-min+1).keys()].map(x => x + min);
+    shuffleArray(options);
+
+    let newPointOutcomes;
+    let possiblePointOutcomes = options.slice(0, nrOfOptions[0]);
+
+    possiblePointOutcomes.sort((a,b) => a - b);
+    let points = [[...possiblePointOutcomes]];
+
+    let producesDuplicates = (x) => {
+        let i = 0;
+        for(let j = 0; j < possiblePointOutcomes.length; j++) {
+            let p = possiblePointOutcomes[j] + x;
+            while(p > newPointOutcomes[i]) {
+                i++;
+                if(i >= newPointOutcomes.length) {
+                    return false;
+                }
+            }
+            if(p === newPointOutcomes[i]) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    let duplicates = false;
+
+    for(let i = 1; i < nrOfOptions.length; i++) {
+        shuffleArray(options);
+
+        let currentPoints = [options[0]];
+        // newPointOutcomes stays sorted
+        newPointOutcomes = possiblePointOutcomes.map(x => x + options[0]);
+
+        for(let j = 1; j < options.length; j++) {
+            let afterAddition = possiblePointOutcomes.map(x => x + options[j]);
+            if(!isIntersectionEmpty(afterAddition, newPointOutcomes)) {
+                if(nrOfOptions[i] - currentPoints.length >= options.length - j) {
+                    duplicates = true;
+                } else {
+                    continue;
+                }
+            }
+
+            currentPoints.push(options[j]);
+            newPointOutcomes = mergeSortedArrays(newPointOutcomes, possiblePointOutcomes.map(x => x + options[j]));
+
+            if(currentPoints.length === nrOfOptions[i]) {
+                break;
+            }
+        }
+
+        if(currentPoints.length !== nrOfOptions[i]) {
+            console.error('Could not find any points from list of available options. Maybe a bad start? Rerun me? Maybe too many tasks?');
+            return { error: 'Could not generate points. Maybe retry? Maybe add more numbers to list of points?', points, possiblePointOutcomes };
+        }
+
+        points.push(currentPoints);
+        possiblePointOutcomes = newPointOutcomes;
+    }
+    possiblePointOutcomes.sort();
+    return { duplicates, points, possiblePointOutcomes };
+}
+
+// console.log(calculateAllSolutions([
+//     [ 1, 2, 15, 20 ],
+//     [ 1, 5, 13, 8 ],
+//     [ 25, 7, 3, 4 ]
+// ]));
+
+// let tasks = [ 4, 4, 4 ];
+// let result = generateRandomUniquePointDistributionsSoStudentsCannotEasilyDetermineTheCorrectAnswers(tasks, [...Array(30).keys()].map(x => x * 5));
+// console.log('\n\n');
+// console.log(result);
+// console.log(result.possiblePointOutcomes.length);
+// console.log('\n\n');
+// console.log(calculateAllSolutions([[1,2,4,5],[9,3]]));
+    </script>
+    <script>
+        let points = 'Nichts zum Kopieren...';
+        function copyFromLeft() {
+            document.getElementById('taskSets').value = points;
+        }
+
+        document.getElementById('options').value = [...Array(31).keys()].join(',');
+        function generateCombinations() {
+            const nrOfOptions = document.getElementById("nrOfOptions").value
+                .split(",").map(n => parseInt(n.trim(), 10));
+
+            const options = document.getElementById("options").value
+                .split(",").map(n => parseInt(n.trim(), 10));
+
+            if (nrOfOptions.some(isNaN) || options.some(isNaN)) {
+                alert("Please enter valid numbers!");
+                return;
+            }
+
+            const generatedTasks = generateRandomUniquePointDistributionsSoStudentsCannotEasilyDetermineTheCorrectAnswers(nrOfOptions, options);
+            document.getElementById("output").textContent = JSON.stringify(generatedTasks, null, 2);
+            points = JSON.stringify(generatedTasks.points);
+        }
+
+        let drewSomething = false;
+
+        function calculateSums() {
+            let taskSets, result;
+            try {
+                taskSets = JSON.parse(document.getElementById("taskSets").value);
+                result = calculateAllSolutions(taskSets);
+            } catch (e) {
+                alert("Invalid input format! Ensure it's valid JSON.");
+                return;
+            }
+
+            const keys = Object.keys(result);
+            const min = Math.min(...keys);
+            const max = Math.max(...keys);
+
+            const data = Array.from({ length: max - min + 1 }, (_, i) => ({
+                key: min + i, 
+                value: result[min + i] || 0
+            }));
+
+            const svg = d3.select("svg");
+            const containerWidth = svg.node().parentNode.clientWidth || 800; // Fallback to 800px
+
+            // Set margins and calculated width
+            const margin = { top: 20, right: 20, bottom: 50, left: 50 };
+            const width = containerWidth - margin.left - margin.right;
+            const height = 330 - margin.top - margin.bottom;
+
+            // Apply responsive behavior
+            svg.attr("viewBox", `0 0 ${containerWidth} 330`)
+                .attr("preserveAspectRatio", "xMinYMid meet");
+
+            // X Scale (Map keys directly)
+            const xScale = d3.scaleBand()
+                .domain(data.map(d => d.key))
+                .range([margin.left, width])
+                .padding(0.1);
+
+            // Y Scale (Bar heights)
+            const yScale = d3.scaleLinear()
+                .domain([0, d3.max(data, d => d.value)])
+                .nice()
+                .range([height, margin.top]);
+
+            // Bars
+            svg.selectAll("rect")
+                .data(data)
+                .enter().append("rect")
+                .attr("x", d => xScale(d.key))
+                .attr("y", d => yScale(d.value))
+                .attr("height", d => height - yScale(d.value))
+                .attr("width", xScale.bandwidth())
+                .attr("class", "bar")
+                .attr("fill", "steelblue");
+
+            // X Axis
+            const xAxis = svg.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(xScale));
+
+            xAxis.selectAll("text")
+                .attr("transform", "rotate(-45)")
+                .attr("text-anchor", "end");
+
+            // Y Axis
+            svg.append("g")
+                .attr("transform", `translate(${margin.left},0)`)
+                .call(d3.axisLeft(yScale).ticks(5));
+
+                requestAnimationFrame(() => {
+                    const labels = xAxis.selectAll("text").nodes();
+                    let overlap = false;
+
+                    for (let i = 0; i < labels.length - 1; i++) {
+                        const a = labels[i].getBoundingClientRect();
+                        const b = labels[i + 1].getBoundingClientRect();
+                        if (a.right > b.left) {
+                            overlap = true;
+                            break;
+                        }
+                    }
+
+                    if (overlap) {
+                        const tickValues = data.map(d => d.key).filter((_, i) => i % 5 === 0);
+                        xAxis.call(d3.axisBottom(xScale).tickValues(tickValues));
+
+                        xAxis.selectAll("text")
+                            .attr("transform", "rotate(-45)")
+                            .attr("text-anchor", "end");
+                    }
+                });
+            
+            drewSomething = true;
+
+            document.getElementById("output2").textContent = JSON.stringify(result, null, 2);
+        }
+
+        window.addEventListener("resize", () => {if(drewSomething) calculateSums()});
+    </script>
+
+</body>
+</html>
