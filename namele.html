@@ -18,7 +18,8 @@
         --present: #b45309; /* amber/dark */
         --absent: #374151; /* slate */
 
-        --tile-size: min(14vmin, 64px);
+        --tile-size: min(8vmin, 60px);
+        --keyboard-key-size: min(8vw, 40px);
         --gap: 8px;
         --radius: 8px;
         --font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
@@ -204,7 +205,10 @@
       }
       .key {
         height: 48px;
-        min-width: 42px;
+        /* min-width: 42px; */
+        min-width: 30px;
+        max-width: 42px;
+        width: 6vmin;
         padding: 0 10px;
         border-radius: 8px;
         border: none;
