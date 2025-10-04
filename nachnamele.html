@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Nachnamele</title>
+    <style>
+      :root {
+        --bg: #0f1724;
+        --panel: #0b1220;
+        --tile-bg: #111827;
+        --tile-border: #374151;
+        --text: #e6eef8;
+        --muted: #9aa4b2;
+        --accent: #60a5fa;
+
+        --correct: #16a34a; /* green */
+        --present: #b45309; /* amber/dark */
+        --absent: #374151; /* slate */
+
+        --tile-size: min(14vmin, 64px);
+        --gap: 8px;
+        --radius: 8px;
+        --font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      }
+
+      /* Basic page */
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(180deg, var(--bg) 0%, #071026 100%);
+        color: var(--text);
+        font-family: var(--font-family);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        padding: 24px;
+      }
+
+      .container {
+        width: 100%;
+        max-width: 720px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01));
+        border-radius: 12px;
+        padding: 28px;
+        box-shadow: 0 8px 30px rgba(2, 6, 23, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.03);
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 18px;
+      }
+      header h1 {
+        font-size: 18px;
+        margin: 0;
+      }
+      header p {
+        color: var(--muted);
+        margin: 0;
+        font-size: 13px;
+      }
+
+      /* Grid wrapper */
+      .board {
+        display: grid;
+        gap: var(--gap);
+        justify-content: center;
+        margin: 0 auto 18px auto;
+        width: calc(var(--tile-size) * 5 + var(--gap) * 4);
+      }
+
+      .row {
+        display: flex;
+        /* grid-template-columns: repeat(5, 1fr); */
+        gap: var(--gap);
+      }
+
+      .tile {
+        width: var(--tile-size);
+        height: var(--tile-size);
+        border-radius: var(--radius);
+        background: var(--tile-bg);
+        border: 2px solid var(--tile-border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: calc(var(--tile-size) * 0.45);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text);
+        user-select: none;
+        box-sizing: border-box;
+        transform-origin: center;
+        transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+        backface-visibility: hidden;
+      }
+
+      .tile.empty {
+        background: transparent;
+        border-style: dashed;
+        color: var(--muted);
+        font-weight: 600;
+      }
+      .tile.filled {
+        border-color: rgba(255, 255, 255, 0.08);
+      }
+
+      /* states */
+      .tile.correct {
+        background: var(--correct);
+        border-color: var(--correct);
+        color: white;
+      }
+      .tile.present {
+        background: var(--present);
+        border-color: var(--present);
+        color: white;
+      }
+      .tile.absent {
+        background: var(--absent);
+        border-color: var(--absent);
+        color: white;
+      }
+
+      .tile.hidden {
+        visibility: hidden;
+      }
+
+      .tile.redborder {
+        border-color: darkred;
+        background: rgba(139, 0, 0, 0.388);
+      }
+
+      /* simple flip animation */
+      .flip {
+        animation: flip 960ms ease-in-out forwards;
+      }
+      @keyframes flip {
+        0% {
+          transform: rotateX(0deg);
+        }
+        50% {
+          transform: rotateX(90deg);
+        }
+        100% {
+          transform: rotateX(0deg);
+        }
+      }
+
+      /* pop for newly typed */
+      .pop {
+        animation: pop 160ms ease-out;
+      }
+      @keyframes pop {
+        0% {
+          transform: scale(0.95);
+        }
+        50% {
+          transform: scale(1.08);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      /* shake row */
+      @keyframes shake {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        20%,
+        60% {
+          transform: translateX(-6px);
+        }
+        40%,
+        80% {
+          transform: translateX(6px);
+        }
+      }
+      .row.shake {
+        animation: shake 400ms ease;
+      }
+
+      /* keyboard */
+      .keyboard {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        align-items: center;
+      }
+      .kb-row {
+        display: flex;
+        gap: 8px;
+      }
+      .key {
+        height: 48px;
+        min-width: 42px;
+        padding: 0 10px;
+        border-radius: 8px;
+        border: none;
+        background: #0f1724;
+        color: var(--text);
+        font-weight: 700;
+        cursor: pointer;
+        letter-spacing: 0.06em;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 6px rgba(2, 6, 23, 0.6);
+        user-select: none;
+      }
+      .key.wide {
+        min-width: 72px;
+      }
+      .key.k-correct {
+        background: var(--correct);
+        color: white;
+      }
+      .key.k-present {
+        background: var(--present);
+        color: white;
+      }
+      .key.k-absent {
+        background: var(--absent);
+        color: white;
+      }
+
+      /* responsive tweaks */
+      @media (max-width: 520px) {
+        :root {
+          --tile-size: calc((100vw - 64px) / 5);
+        }
+        .container {
+          padding: 18px;
+        }
+        .key {
+          height: 40px;
+        }
+      }
+
+      /* accessibility helpers */
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      #confetti {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none; /* don’t block clicks */
+      }
+    </style>
+  </head>
+  <body>
+    <main class="container" role="application" aria-label="Word guessing game">
+      <header>
+        <h1>Nachnamele</h1>
+        <p>6 Versuche</p>
+      </header>
+
+      <div id="board" class="board" aria-live="polite">
+        <!-- 6 rows of 5 tiles each; JS will populate letters & states -->
+        <div class="row" data-row="0">
+          <div class="tile empty" data-col="0"></div>
+          <div class="tile empty hidden" data-col="1"></div>
+          <div class="tile empty hidden" data-col="2"></div>
+          <div class="tile empty hidden" data-col="3"></div>
+          <div class="tile empty hidden" data-col="4"></div>
+          <div class="tile empty hidden" data-col="5"></div>
+          <div class="tile empty hidden" data-col="6"></div>
+          <div class="tile empty hidden" data-col="7"></div>
+          <div class="tile empty hidden" data-col="8"></div>
+          <div class="tile empty hidden" data-col="9"></div>
+        </div>
+        <div class="row" data-row="1">
+          <div class="tile empty" data-col="0"></div>
+          <div class="tile empty hidden" data-col="1"></div>
+          <div class="tile empty hidden" data-col="2"></div>
+          <div class="tile empty hidden" data-col="3"></div>
+          <div class="tile empty hidden" data-col="4"></div>
+          <div class="tile empty hidden" data-col="5"></div>
+          <div class="tile empty hidden" data-col="6"></div>
+          <div class="tile empty hidden" data-col="7"></div>
+          <div class="tile empty hidden" data-col="8"></div>
+          <div class="tile empty hidden" data-col="9"></div>
+        </div>
+        <div class="row" data-row="2">
+          <div class="tile empty" data-col="0"></div>
+          <div class="tile empty hidden" data-col="1"></div>
+          <div class="tile empty hidden" data-col="2"></div>
+          <div class="tile empty hidden" data-col="3"></div>
+          <div class="tile empty hidden" data-col="4"></div>
+          <div class="tile empty hidden" data-col="5"></div>
+          <div class="tile empty hidden" data-col="6"></div>
+          <div class="tile empty hidden" data-col="7"></div>
+          <div class="tile empty hidden" data-col="8"></div>
+          <div class="tile empty hidden" data-col="9"></div>
+        </div>
+        <div class="row" data-row="3">
+          <div class="tile empty" data-col="0"></div>
+          <div class="tile empty hidden" data-col="1"></div>
+          <div class="tile empty hidden" data-col="2"></div>
+          <div class="tile empty hidden" data-col="3"></div>
+          <div class="tile empty hidden" data-col="4"></div>
+          <div class="tile empty hidden" data-col="5"></div>
+          <div class="tile empty hidden" data-col="6"></div>
+          <div class="tile empty hidden" data-col="7"></div>
+          <div class="tile empty hidden" data-col="8"></div>
+          <div class="tile empty hidden" data-col="9"></div>
+        </div>
+        <div class="row" data-row="4">
+          <div class="tile empty" data-col="0"></div>
+          <div class="tile empty hidden" data-col="1"></div>
+          <div class="tile empty hidden" data-col="2"></div>
+          <div class="tile empty hidden" data-col="3"></div>
+          <div class="tile empty hidden" data-col="4"></div>
+          <div class="tile empty hidden" data-col="5"></div>
+          <div class="tile empty hidden" data-col="6"></div>
+          <div class="tile empty hidden" data-col="7"></div>
+          <div class="tile empty hidden" data-col="8"></div>
+          <div class="tile empty hidden" data-col="9"></div>
+        </div>
+        <div class="row" data-row="5">
+          <div class="tile empty" data-col="0"></div>
+          <div class="tile empty hidden" data-col="1"></div>
+          <div class="tile empty hidden" data-col="2"></div>
+          <div class="tile empty hidden" data-col="3"></div>
+          <div class="tile empty hidden" data-col="4"></div>
+          <div class="tile empty hidden" data-col="5"></div>
+          <div class="tile empty hidden" data-col="6"></div>
+          <div class="tile empty hidden" data-col="7"></div>
+          <div class="tile empty hidden" data-col="8"></div>
+          <div class="tile empty hidden" data-col="9"></div>
+        </div>
+      </div>
+
+      <section class="keyboard" aria-label="On-screen keyboard">
+        <div class="kb-row" role="group" aria-label="first row">
+          <!-- qwerty row -->
+          <button class="key" data-key="q">Q</button>
+          <button class="key" data-key="w">W</button>
+          <button class="key" data-key="e">E</button>
+          <button class="key" data-key="r">R</button>
+          <button class="key" data-key="t">T</button>
+          <button class="key" data-key="y">Y</button>
+          <button class="key" data-key="u">U</button>
+          <button class="key" data-key="i">I</button>
+          <button class="key" data-key="o">O</button>
+          <button class="key" data-key="p">P</button>
+        </div>
+
+        <div class="kb-row" role="group" aria-label="second row">
+          <button class="key" data-key="a">A</button>
+          <button class="key" data-key="s">S</button>
+          <button class="key" data-key="d">D</button>
+          <button class="key" data-key="f">F</button>
+          <button class="key" data-key="g">G</button>
+          <button class="key" data-key="h">H</button>
+          <button class="key" data-key="j">J</button>
+          <button class="key" data-key="k">K</button>
+          <button class="key" data-key="l">L</button>
+        </div>
+
+        <div class="kb-row" role="group" aria-label="third row">
+          <button class="key wide" data-key="enter">Enter</button>
+          <button class="key" data-key="z">Z</button>
+          <button class="key" data-key="x">X</button>
+          <button class="key" data-key="c">C</button>
+          <button class="key" data-key="v">V</button>
+          <button class="key" data-key="b">B</button>
+          <button class="key" data-key="n">N</button>
+          <button class="key" data-key="m">M</button>
+          <button class="key wide" data-key="backspace">←</button>
+        </div>
+      </section>
+      <canvas id="confetti"></canvas>
+
+      <p class="sr-only" id="help">Type letters or use the on-screen keyboard. Press Enter to submit a guess and Backspace to delete.</p>
+    </main>
+
+    <script>
+      const MAX_LENGTH = 10;
+
+      let rows = [0, 1, 2, 3, 4, 5].map((v) => ({
+        row: document.querySelector('[data-row="' + v + '"]'),
+        cols: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((x) => document.querySelector('[data-row="' + v + '"] > [data-col="' + x + '"]')),
+        input: "",
+      }));
+      let attempt = 0;
+      let guessedLetters = {};
+      document.querySelectorAll(".key").forEach((el) => {
+        guessedLetters[el.dataset.key] = { el: el, status: null };
+      });
+
+      function currentCell() {
+        if (attempt >= rows.length) {
+          return null;
+        }
+        return rows[attempt].cols[rows[attempt].input.length - 1];
+      }
+
+      function nextCell() {
+        if (attempt >= rows.length) {
+          return null;
+        }
+        return rows[attempt].cols[rows[attempt].input.length];
+      }
+
+      function currentInput() {
+        if (attempt >= rows.length) {
+          return null;
+        }
+        return rows[attempt].input;
+      }
+      function launchConfetti() {
+        const canvas = document.getElementById("confetti");
+        const ctx = canvas.getContext("2d");
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const pieces = Array.from({ length: 150 }, () => ({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height - canvas.height,
+          w: 6,
+          h: 12,
+          color: `hsl(${Math.random() * 360}, 80%, 60%)`,
+          speed: 2 + Math.random() * 4,
+          rot: Math.random() * Math.PI,
+          rSpeed: (Math.random() - 0.5) * 0.2,
+        }));
+
+        function update() {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          pieces.forEach((p) => {
+            p.y += p.speed;
+            p.rot += p.rSpeed;
+            if (p.y > canvas.height) p.y = -20;
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rot);
+            ctx.fillStyle = p.color;
+            ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+            ctx.restore();
+          });
+          requestAnimationFrame(update);
+        }
+
+        update();
+
+        // stop after 3 seconds
+        setTimeout(() => {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }, 3000);
+      }
+
+      function updateKeyboard() {
+        Object.entries(guessedLetters).forEach((v) => {
+          let el = v[1].el;
+          let status = v[1].status;
+
+          if (status) {
+            el.classList.remove("k-present");
+            el.classList.add(status);
+          }
+        });
+      }
+
+      function cssAnimate(el, cssClass, delay = 0) {
+        setTimeout(() => {
+          el.classList.add(cssClass);
+          el.addEventListener(
+            "animationend",
+            () => {
+              el.classList.remove(cssClass);
+            },
+            { once: true }
+          );
+        }, delay);
+      }
+
+      function shakeRow() {
+        if (attempt >= rows.length) {
+          return;
+        }
+
+        cssAnimate(rows[attempt].row, "shake");
+      }
+
+      function checkGuess(guessed, solution) {
+        guess = guessed.toLowerCase();
+        solution = solution.toLowerCase();
+
+        const result = Array(guess.length).fill("absent");
+        const solArr = solution.split("");
+        const guessArr = guess.split("");
+
+        // 1. mark correct letters
+        for (let i = 0; i < guessArr.length; i++) {
+          if (guessArr[i] === solArr[i]) {
+            result[i] = "correct";
+            solArr[i] = null; // mark as used
+            guessArr[i] = null;
+          }
+        }
+
+        // 2. mark present (wrong place) letters
+        for (let i = 0; i < guessArr.length; i++) {
+          if (guessArr[i] && solArr.includes(guessArr[i])) {
+            result[i] = "present";
+            solArr[solArr.indexOf(guessArr[i])] = null; // mark as used
+          }
+        }
+
+        guessed.split("").forEach((v, i) => {
+          let o = guessedLetters[v];
+          if (result[i] === "correct") {
+            o.status = "k-correct";
+          } else if (result[i] === "present" && o.status !== "k-correct") {
+            o.status = "k-present";
+          } else if (result[i] === "absent" && o.status !== "k-present" && o.status !== "k-correct") {
+            o.status = "k-absent";
+          }
+        });
+
+        return result;
+      }
+
+      function checkInput() {
+        if (attempt >= rows.length) {
+          return;
+        }
+        let input = currentInput();
+        if (input.length < 3) {
+          shakeRow();
+          return;
+        }
+
+        let result = checkGuess(
+          currentInput(),
+          [][(![] + [])[+!+[]] + (!![] + [])[+[]]][
+            ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+              (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+              ([][[]] + [])[+!+[]] +
+              (![] + [])[!+[] + !+[] + !+[]] +
+              (!![] + [])[+[]] +
+              (!![] + [])[+!+[]] +
+              ([][[]] + [])[+[]] +
+              ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+              (!![] + [])[+[]] +
+              (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+              (!![] + [])[+!+[]]
+          ](
+            (!![] + [])[+!+[]] +
+              (!![] + [])[!+[] + !+[] + !+[]] +
+              (!![] + [])[+[]] +
+              ([][[]] + [])[+[]] +
+              (!![] + [])[+!+[]] +
+              ([][[]] + [])[+!+[]] +
+              (+[![]] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+!+[]]] +
+              (!![] + [])[!+[] + !+[] + !+[]] +
+              (+(!+[] + !+[] + !+[] + [+!+[]]))[
+                (!![] + [])[+[]] +
+                  (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                  ([] + [])[
+                    ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                      ([][[]] + [])[+!+[]] +
+                      (![] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [])[+[]] +
+                      (!![] + [])[+!+[]] +
+                      ([][[]] + [])[+[]] +
+                      ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [])[+[]] +
+                      (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                      (!![] + [])[+!+[]]
+                  ][
+                    ([][[]] + [])[+!+[]] +
+                      (![] + [])[+!+[]] +
+                      ((+[])[
+                        ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                          (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                          ([][[]] + [])[+!+[]] +
+                          (![] + [])[!+[] + !+[] + !+[]] +
+                          (!![] + [])[+[]] +
+                          (!![] + [])[+!+[]] +
+                          ([][[]] + [])[+[]] +
+                          ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                          (!![] + [])[+[]] +
+                          (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                          (!![] + [])[+!+[]]
+                      ] + [])[+!+[] + [+!+[]]] +
+                      (!![] + [])[!+[] + !+[] + !+[]]
+                  ]
+              ](!+[] + !+[] + !+[] + [!+[] + !+[]]) +
+              (![] + [])[+!+[]] +
+              (![] + [])[!+[] + !+[]]
+          )()(
+            [][(![] + [])[+!+[]] + (!![] + [])[+[]]][
+              ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                ([][[]] + [])[+!+[]] +
+                (![] + [])[!+[] + !+[] + !+[]] +
+                (!![] + [])[+[]] +
+                (!![] + [])[+!+[]] +
+                ([][[]] + [])[+[]] +
+                ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                (!![] + [])[+[]] +
+                (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                (!![] + [])[+!+[]]
+            ](
+              (!![] + [])[+!+[]] +
+                (!![] + [])[!+[] + !+[] + !+[]] +
+                (!![] + [])[+[]] +
+                ([][[]] + [])[+[]] +
+                (!![] + [])[+!+[]] +
+                ([][[]] + [])[+!+[]] +
+                ([] + [])[
+                  (![] + [])[+[]] +
+                    (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                    ([][[]] + [])[+!+[]] +
+                    (!![] + [])[+[]] +
+                    ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                    (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                    (![] + [])[!+[] + !+[]] +
+                    (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                    (!![] + [])[+!+[]]
+                ]()[+!+[] + [!+[] + !+[]]] +
+                ([][(![] + [])[+!+[]] + (!![] + [])[+[]]]
+                  [
+                    ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                      ([][[]] + [])[+!+[]] +
+                      (![] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [])[+[]] +
+                      (!![] + [])[+!+[]] +
+                      ([][[]] + [])[+[]] +
+                      ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [])[+[]] +
+                      (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                      (!![] + [])[+!+[]]
+                  ](
+                    (!![] + [])[+!+[]] +
+                      (!![] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [])[+[]] +
+                      ([][[]] + [])[+[]] +
+                      (!![] + [])[+!+[]] +
+                      ([][[]] + [])[+!+[]] +
+                      (![] + [+[]])[
+                        ([![]] + [][[]])[+!+[] + [+[]]] +
+                          (!![] + [])[+[]] +
+                          (![] + [])[+!+[]] +
+                          (![] + [])[!+[] + !+[]] +
+                          ([![]] + [][[]])[+!+[] + [+[]]] +
+                          ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                          (![] + [])[!+[] + !+[] + !+[]]
+                      ]()[+!+[] + [+[]]] +
+                      ![] +
+                      (![] + [+[]])[
+                        ([![]] + [][[]])[+!+[] + [+[]]] +
+                          (!![] + [])[+[]] +
+                          (![] + [])[+!+[]] +
+                          (![] + [])[!+[] + !+[]] +
+                          ([![]] + [][[]])[+!+[] + [+[]]] +
+                          ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                          (![] + [])[!+[] + !+[] + !+[]]
+                      ]()[+!+[] + [+[]]]
+                  )()
+                  [
+                    ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                      ([][[]] + [])[+!+[]] +
+                      (![] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [])[+[]] +
+                      (!![] + [])[+!+[]] +
+                      ([][[]] + [])[+[]] +
+                      ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [])[+[]] +
+                      (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                      (!![] + [])[+!+[]]
+                  ](
+                    (![] + [+[]])[
+                      ([![]] + [][[]])[+!+[] + [+[]]] +
+                        (!![] + [])[+[]] +
+                        (![] + [])[+!+[]] +
+                        (![] + [])[!+[] + !+[]] +
+                        ([![]] + [][[]])[+!+[] + [+[]]] +
+                        ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                        (![] + [])[!+[] + !+[] + !+[]]
+                    ]()[+!+[] + [+[]]]
+                  ) + [])[+!+[]] +
+                [!+[] + !+[] + !+[] + !+[]] +
+                [!+[] + !+[]] +
+                (+[] +
+                  [][(![] + [])[+!+[]] + (!![] + [])[+[]]][
+                    ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                      ([][[]] + [])[+!+[]] +
+                      (![] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [])[+[]] +
+                      (!![] + [])[+!+[]] +
+                      ([][[]] + [])[+[]] +
+                      ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [])[+[]] +
+                      (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                      (!![] + [])[+!+[]]
+                  ])[+!+[] + [+[]]] +
+                (+[] +
+                  [][(![] + [])[+!+[]] + (!![] + [])[+[]]][
+                    ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                      ([][[]] + [])[+!+[]] +
+                      (![] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [])[+[]] +
+                      (!![] + [])[+!+[]] +
+                      ([][[]] + [])[+[]] +
+                      ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [])[+[]] +
+                      (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                      (!![] + [])[+!+[]]
+                  ](
+                    (!![] + [])[+!+[]] +
+                      (!![] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [])[+[]] +
+                      ([][[]] + [])[+[]] +
+                      (!![] + [])[+!+[]] +
+                      ([][[]] + [])[+!+[]] +
+                      (![] + [+[]])[
+                        ([![]] + [][[]])[+!+[] + [+[]]] +
+                          (!![] + [])[+[]] +
+                          (![] + [])[+!+[]] +
+                          (![] + [])[!+[] + !+[]] +
+                          ([![]] + [][[]])[+!+[] + [+[]]] +
+                          ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                          (![] + [])[!+[] + !+[] + !+[]]
+                      ]()[+!+[] + [+[]]] +
+                      ![] +
+                      (![] + [+[]])[
+                        ([![]] + [][[]])[+!+[] + [+[]]] +
+                          (!![] + [])[+[]] +
+                          (![] + [])[+!+[]] +
+                          (![] + [])[!+[] + !+[]] +
+                          ([![]] + [][[]])[+!+[] + [+[]]] +
+                          ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                          (![] + [])[!+[] + !+[] + !+[]]
+                      ]()[+!+[] + [+[]]]
+                  )()[
+                    ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                      ([][[]] + [])[+!+[]] +
+                      (![] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [])[+[]] +
+                      (!![] + [])[+!+[]] +
+                      ([][[]] + [])[+[]] +
+                      ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [])[+[]] +
+                      (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                      (!![] + [])[+!+[]]
+                  ])[+!+[] + [+[]]] +
+                (+(+!+[] + (!+[] + [])[!+[] + !+[] + !+[]] + [+!+[]] + [+[]] + [+[]] + [+[]]) + [])[+[]] +
+                (+[![]] +
+                  [][(![] + [])[+!+[]] + (!![] + [])[+[]]][
+                    ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                      ([][[]] + [])[+!+[]] +
+                      (![] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [])[+[]] +
+                      (!![] + [])[+!+[]] +
+                      ([][[]] + [])[+[]] +
+                      ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [])[+[]] +
+                      (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                      (!![] + [])[+!+[]]
+                  ](
+                    (!![] + [])[+!+[]] +
+                      (!![] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [])[+[]] +
+                      ([][[]] + [])[+[]] +
+                      (!![] + [])[+!+[]] +
+                      ([][[]] + [])[+!+[]] +
+                      (+[![]] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+!+[]]] +
+                      [][(![] + [])[+!+[]] + (!![] + [])[+[]]]
+                        [
+                          ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                            (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                            ([][[]] + [])[+!+[]] +
+                            (![] + [])[!+[] + !+[] + !+[]] +
+                            (!![] + [])[+[]] +
+                            (!![] + [])[+!+[]] +
+                            ([][[]] + [])[+[]] +
+                            ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                            (!![] + [])[+[]] +
+                            (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                            (!![] + [])[+!+[]]
+                        ](
+                          (!![] + [])[+!+[]] +
+                            (!![] + [])[!+[] + !+[] + !+[]] +
+                            (!![] + [])[+[]] +
+                            ([][[]] + [])[+[]] +
+                            (!![] + [])[+!+[]] +
+                            ([][[]] + [])[+!+[]] +
+                            (+[![]] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+!+[]]] +
+                            (!![] + [])[!+[] + !+[] + !+[]] +
+                            (![] + [])[!+[] + !+[] + !+[]] +
+                            ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                            (![] + [])[+!+[]] +
+                            (+(!+[] + !+[] + [+!+[]] + [+!+[]]))[
+                              (!![] + [])[+[]] +
+                                (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                                ([] + [])[
+                                  ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                                    (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                                    ([][[]] + [])[+!+[]] +
+                                    (![] + [])[!+[] + !+[] + !+[]] +
+                                    (!![] + [])[+[]] +
+                                    (!![] + [])[+!+[]] +
+                                    ([][[]] + [])[+[]] +
+                                    ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                                    (!![] + [])[+[]] +
+                                    (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                                    (!![] + [])[+!+[]]
+                                ][
+                                  ([][[]] + [])[+!+[]] +
+                                    (![] + [])[+!+[]] +
+                                    ((+[])[
+                                      ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                                        (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                                        ([][[]] + [])[+!+[]] +
+                                        (![] + [])[!+[] + !+[] + !+[]] +
+                                        (!![] + [])[+[]] +
+                                        (!![] + [])[+!+[]] +
+                                        ([][[]] + [])[+[]] +
+                                        ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                                        (!![] + [])[+[]] +
+                                        (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                                        (!![] + [])[+!+[]]
+                                    ] + [])[+!+[] + [+!+[]]] +
+                                    (!![] + [])[!+[] + !+[] + !+[]]
+                                ]
+                            ](!+[] + !+[] + !+[] + [+!+[]])[+!+[]] +
+                            (!![] + [])[!+[] + !+[] + !+[]]
+                        )()([][(![] + [])[+!+[]] + (!![] + [])[+[]]])
+                        [(![] + [])[+!+[]] + (!![] + [])[+[]]](
+                          (+((+(+!+[] + [+!+[]] + (!![] + [])[!+[] + !+[] + !+[]] + [!+[] + !+[]] + [+[]]) + [])[+!+[]] + [+[] + [+[]] + [+[]] + [+[]] + [+[]] + [+[]] + [+!+[]]]) +
+                            [])[!+[] + !+[]] + [+!+[]]
+                        ) +
+                      (![] + [])[+!+[]] +
+                      (!![] + [])[+[]] +
+                      (!![] + [])[!+[] + !+[] + !+[]]
+                  )()())[!+[] + !+[] + !+[] + [+[]]] +
+                ([][(![] + [])[+!+[]] + (!![] + [])[+[]]]
+                  [
+                    ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                      ([][[]] + [])[+!+[]] +
+                      (![] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [])[+[]] +
+                      (!![] + [])[+!+[]] +
+                      ([][[]] + [])[+[]] +
+                      ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [])[+[]] +
+                      (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                      (!![] + [])[+!+[]]
+                  ](
+                    (!![] + [])[+!+[]] +
+                      (!![] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [])[+[]] +
+                      ([][[]] + [])[+[]] +
+                      (!![] + [])[+!+[]] +
+                      ([][[]] + [])[+!+[]] +
+                      (![] + [+[]])[
+                        ([![]] + [][[]])[+!+[] + [+[]]] +
+                          (!![] + [])[+[]] +
+                          (![] + [])[+!+[]] +
+                          (![] + [])[!+[] + !+[]] +
+                          ([![]] + [][[]])[+!+[] + [+[]]] +
+                          ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                          (![] + [])[!+[] + !+[] + !+[]]
+                      ]()[+!+[] + [+[]]] +
+                      ![] +
+                      (![] + [+[]])[
+                        ([![]] + [][[]])[+!+[] + [+[]]] +
+                          (!![] + [])[+[]] +
+                          (![] + [])[+!+[]] +
+                          (![] + [])[!+[] + !+[]] +
+                          ([![]] + [][[]])[+!+[] + [+[]]] +
+                          ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                          (![] + [])[!+[] + !+[] + !+[]]
+                      ]()[+!+[] + [+[]]]
+                  )()
+                  [
+                    ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                      ([][[]] + [])[+!+[]] +
+                      (![] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [])[+[]] +
+                      (!![] + [])[+!+[]] +
+                      ([][[]] + [])[+[]] +
+                      ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [])[+[]] +
+                      (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                      (!![] + [])[+!+[]]
+                  ](
+                    (![] + [+[]])[
+                      ([![]] + [][[]])[+!+[] + [+[]]] +
+                        (!![] + [])[+[]] +
+                        (![] + [])[+!+[]] +
+                        (![] + [])[!+[] + !+[]] +
+                        ([![]] + [][[]])[+!+[] + [+[]]] +
+                        ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                        (![] + [])[!+[] + !+[] + !+[]]
+                    ]()[+!+[] + [+[]]]
+                  ) + [])[+!+[]] +
+                [+!+[]] +
+                [!+[] + !+[] + !+[]] +
+                [!+[] + !+[]] +
+                ([][(![] + [])[+!+[]] + (!![] + [])[+[]]]
+                  [
+                    ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                      ([][[]] + [])[+!+[]] +
+                      (![] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [])[+[]] +
+                      (!![] + [])[+!+[]] +
+                      ([][[]] + [])[+[]] +
+                      ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [])[+[]] +
+                      (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                      (!![] + [])[+!+[]]
+                  ](
+                    (!![] + [])[+!+[]] +
+                      (!![] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [])[+[]] +
+                      ([][[]] + [])[+[]] +
+                      (!![] + [])[+!+[]] +
+                      ([][[]] + [])[+!+[]] +
+                      (![] + [+[]])[
+                        ([![]] + [][[]])[+!+[] + [+[]]] +
+                          (!![] + [])[+[]] +
+                          (![] + [])[+!+[]] +
+                          (![] + [])[!+[] + !+[]] +
+                          ([![]] + [][[]])[+!+[] + [+[]]] +
+                          ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                          (![] + [])[!+[] + !+[] + !+[]]
+                      ]()[+!+[] + [+[]]] +
+                      ![] +
+                      (![] + [+[]])[
+                        ([![]] + [][[]])[+!+[] + [+[]]] +
+                          (!![] + [])[+[]] +
+                          (![] + [])[+!+[]] +
+                          (![] + [])[!+[] + !+[]] +
+                          ([![]] + [][[]])[+!+[] + [+[]]] +
+                          ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                          (![] + [])[!+[] + !+[] + !+[]]
+                      ]()[+!+[] + [+[]]]
+                  )()
+                  [
+                    ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                      ([][[]] + [])[+!+[]] +
+                      (![] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [])[+[]] +
+                      (!![] + [])[+!+[]] +
+                      ([][[]] + [])[+[]] +
+                      ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                      (!![] + [])[+[]] +
+                      (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                      (!![] + [])[+!+[]]
+                  ](
+                    (![] + [+[]])[
+                      ([![]] + [][[]])[+!+[] + [+[]]] +
+                        (!![] + [])[+[]] +
+                        (![] + [])[+!+[]] +
+                        (![] + [])[!+[] + !+[]] +
+                        ([![]] + [][[]])[+!+[] + [+[]]] +
+                        ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                        (![] + [])[!+[] + !+[] + !+[]]
+                    ]()[+!+[] + [+[]]]
+                  ) + [])[+!+[]] +
+                [!+[] + !+[] + !+[] + !+[]] +
+                [!+[] + !+[]] +
+                ([] + [])[
+                  (![] + [])[+[]] +
+                    (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                    ([][[]] + [])[+!+[]] +
+                    (!![] + [])[+[]] +
+                    ([][(![] + [])[+!+[]] + (!![] + [])[+[]]] + [])[!+[] + !+[] + !+[]] +
+                    (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                    (![] + [])[!+[] + !+[]] +
+                    (!![] + [][(![] + [])[+!+[]] + (!![] + [])[+[]]])[+!+[] + [+[]]] +
+                    (!![] + [])[+!+[]]
+                ]()[+!+[] + [!+[] + !+[]]]
+            )()
+          )
+        );
+
+        rows[attempt].cols.forEach((tile, i) => {
+          cssAnimate(tile, "flip", i * 80);
+          setTimeout(() => {
+            tile.classList.add(result[i]);
+          }, i * 80 + 960 / 2);
+        });
+
+        if (result.filter((v) => v === "correct").length === 5 || result.reduce((prev, curr) => prev && curr === "correct")) {
+          if (currentInput().length < 5) {
+            let el = nextCell();
+            setTimeout(() => el.classList.add("redborder"), currentInput().length * 80 + 960 / 2);
+          } else if (currentInput().length > 5) {
+            let el = currentCell();
+            setTimeout(() => {
+              el.classList.add("redborder");
+            }, el.dataset["col"] * 80 + 960 / 2);
+          } else {
+            nextCell().classList.add("hidden");
+            attempt = rows.length;
+            updateKeyboard();
+            launchConfetti();
+            return;
+          }
+        }
+
+        attempt += 1;
+        updateKeyboard();
+        if (attempt >= rows.length) {
+          setTimeout(() => alert("Vielleicht n\xe4chstes mal <3"), 10 * 80 + 940);
+        }
+      }
+
+      function charInput(c) {
+        if (attempt >= rows.length) {
+          return;
+        }
+
+        c = c.toLowerCase();
+        if (c === "enter") {
+          checkInput();
+        } else if (c === "backspace") {
+          let input = currentInput();
+          if (input.length === 0) {
+            shakeRow();
+            return;
+          }
+
+          let next = nextCell();
+          if (next) {
+            next.classList.add("hidden");
+          }
+          let curr = currentCell();
+          curr.classList.add("empty");
+          curr.innerText = "";
+
+          input = input.substring(0, input.length - 1);
+          rows[attempt].input = input;
+        } else if (c.length === 1 && 97 <= c.charCodeAt(0) && c.charCodeAt(0) <= 122) {
+          // a = 97
+          // z = 122
+          if (rows[attempt].input.length >= MAX_LENGTH) {
+            shakeRow();
+            return;
+          }
+
+          let el = nextCell();
+          el.classList.remove("empty");
+          el.innerText = c;
+          cssAnimate(el, "pop");
+          rows[attempt].input += c;
+          if (rows[attempt].input.length < MAX_LENGTH) {
+            // <div class="tile empty" data-col="0" aria-hidden="true"></div>
+            nextCell().classList.remove("hidden");
+            // let newEl = document.createElement("div");
+            // newEl.classList.add("tile", "empty");
+            // newEl.setAttribute("data-col", rows[attempt].el.childNodes.length);
+            // rows[attempt].el.appendChild(newEl);
+          }
+        }
+      }
+
+      document.querySelectorAll(".key").forEach((el) => {
+        el.addEventListener("click", (evt) => {
+          charInput(evt.srcElement.dataset.key);
+        });
+      });
+
+      document.addEventListener("keyup", (evt) => {
+        charInput(evt.key);
+      });
+    </script>
+  </body>
+</html>
