@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MathJax Vector & Matrix Demo</title>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: #f4f4f9;
+      }
+      .container {
+        max-width: 800px;
+        margin: auto;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+      .controls {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        align-items: center;
+      }
+      input[type="text"] {
+        flex-grow: 1;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 16px;
+      }
+      button {
+        padding: 10px 15px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background-color 0.3s;
+        color: white;
+        background-color: #007bff;
+      }
+      button:hover {
+        background-color: #0056b3;
+      }
+      .output-section {
+        margin-top: 20px;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background-color: #ffffff;
+      }
+      .output-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      #copyButton {
+        background-color: #28a745;
+      }
+      #copyButton:hover {
+        background-color: #1e7e34;
+      }
+      /* Style for the MathJax output container */
+      #mathOutput p {
+        margin: 10px 0;
+      }
+      #latexCode {
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Vector and Matrix Generator Demo</h2>
+
+      <div class="controls">
+        <input type="text" id="textInput" placeholder="Enter input (e.g., N=3 or N=4)" />
+        <button id="n3Button">N=3</button>
+        <button id="n4Button">N=4</button>
+        <button id="enterButton">Enter</button>
+      </div>
+
+      <div class="output-section">
+        <div class="output-header">
+          <h3>Mathematical Output</h3>
+          <button id="copyButton">Copy LaTeX</button>
+        </div>
+
+        <div id="mathOutput">
+          <p>Enter a value and click 'Enter' to see the results.</p>
+        </div>
+
+        <textarea id="latexCode" rows="25"></textarea>
+      </div>
+    </div>
+
+    <script>
+      const textInput = document.getElementById("textInput");
+      const n3Button = document.getElementById("n3Button");
+      const n4Button = document.getElementById("n4Button");
+      const enterButton = document.getElementById("enterButton");
+      const mathOutput = document.getElementById("mathOutput");
+      const latexCodeArea = document.getElementById("latexCode");
+      const copyButton = document.getElementById("copyButton");
+
+      // The desired LaTeX code to be displayed
+      const lesVectors = `
+      % Vectors
+      \\theta^\\succsim(1) &= (1,0,0) \\\\
+      \\theta^\\succsim(2) &= (0,1,0)
+      `;
+
+      const lesMatrix = `
+      % Matrices
+      M^{\\succsim, 1} &= \\begin{bmatrix}
+        1 & 0 & 0 \\\\
+        2 & 0 & 1 \\\\
+        3 & 0 & 0 \\\\
+        1 & 0 & 0
+      \\end{bmatrix}\\\\
+
+      M^{\\succsim, 2} &= \\begin{bmatrix}
+        1 & 0 & 0 \\\\
+        1 & 1 & 1 \\\\
+        3 & 0 & 0 \\\\
+        1 & 0 & 0
+      \\end{bmatrix}
+      `;
+
+      /**
+       * Renders the LaTeX code in the MathJax output area.
+       */
+      function renderMathOutput(pr) {
+        // Prepare the output for display
+
+        let lexAn = lexAnalysis(pr);
+        let L1An = L1Analysis(pr);
+        let L2An = L2Analysis(pr);
+        let LPAn = LPAnalysis(pr);
+        let LPSAn = LPSAnalysis(pr);
+        const displayOutput = `$$
+${lexAn.ranking}
+$$
+$$
+${L1An.ranking}
+$$
+$$
+${L2An.ranking}
+$$
+$$
+${LPAn.ranking}
+$$
+$$
+${LPSAn.ranking}
+$$
+$$
+\\begin{aligned}
+${lexcelScores(pr).str}
+\\end{aligned}
+$$
+$$
+\\begin{aligned}
+${L1Scores(pr).str}
+\\end{aligned}
+$$
+<h3>lexcel</h3>
+${lexAn.comparisons}
+
+<h3>L1</h3>
+${L1An.comparisons}
+
+<h3>L2</h3>
+${L2An.comparisons}
+
+<h3>Lp</h3>
+${LPAn.comparisons}
+
+<h3>Lp*</h3>
+${LPSAn.comparisons}`;
+
+        // Set the LaTeX for MathJax rendering
+        mathOutput.innerHTML = displayOutput;
+
+        // Update the hidden textarea for copying
+        // Remove the surrounding $$ \\begin{aligned} and \\end{aligned} $$ for a clean copy
+        const cleanLatex = displayOutput
+          .trim()
+          .replace(/(\\\(|\\\))/g, "$")
+          .replace(/<br>/g, "");
+        latexCodeArea.value = cleanLatex;
+
+        // Tell MathJax to process the new content
+        if (window.MathJax) {
+          MathJax.typeset();
+        }
+      }
+
+      // --- Event Listeners ---
+
+      // N=3 Button Handler
+      n3Button.addEventListener("click", () => {
+        textInput.value = "(123 ~ 12) > (1 ~ 3) > (13 ~ 23 ~ 2 ~ {})";
+      });
+
+      // N=4 Button Handler
+      n4Button.addEventListener("click", () => {
+        textInput.value = "(123 ~ 124 ~ 134 ~ 12 ~ 13 ~ 23 ~ 24 ~ 2 ~ 4) > 234 > (1 ~ 3) > 14 > 34";
+      });
+
+      function toPr(str) {
+        str = str.replace(/[^1-9~>]/g, "");
+        let players = str
+          .replace(/[^1-9]/g, "")
+          .split("")
+          .filter((v, i, arr) => arr.indexOf(v) === i);
+        players.sort();
+        let eqs = str.split(">").map((x) => x.split("~").map((y) => y.split("")));
+
+        return {
+          players: players,
+          eqs: eqs,
+        };
+      }
+
+      function lexcelScores(pr) {
+        let result = {};
+        for (let player of pr.players) {
+          result[player] = new Array(pr.eqs.length).fill(0);
+        }
+        pr.eqs.forEach((eq, i) => {
+          eq.forEach((coal) => {
+            coal.forEach((el) => {
+              result[el][i] += 1;
+            });
+          });
+        });
+        return {
+          result: result,
+          str: pr.players.map((el) => `\\theta^{\\succsim}(${el}) = (${result[el].join(", ")})`).join("\\\\\n"),
+        };
+      }
+
+      function L1Scores(pr) {
+        let result = {};
+        for (let player of pr.players) {
+          result[player] = new Array(pr.players.length);
+          for (let i = 0; i < pr.players.length; i++) {
+            result[player][i] = new Array(pr.eqs.length).fill(0);
+          }
+        }
+        pr.eqs.forEach((eq, i) => {
+          eq.forEach((coal) => {
+            coal.forEach((el) => {
+              result[el][coal.length - 1][i] += 1;
+            });
+          });
+        });
+        return {
+          result: result,
+          str: pr.players.map((el) => `M^{\\succsim, ${el}} = \\begin{bmatrix}\n  ${result[el].map((row) => row.join(" & ")).join(" \\\\\n  ")}\n\\end{bmatrix}`).join("\\\\\n"),
+        };
+      }
+
+      function testSwap(arr, i, j) {
+        let ti = arr.indexOf(i);
+        let tj = arr.indexOf(j);
+        if (ti > tj) {
+          arr[ti] = j;
+          arr[tj] = i;
+        }
+      }
+
+      function lexAnalysis(pr) {
+        let scores = lexcelScores(pr).result;
+        let res = [];
+        let ordered = pr.players.slice();
+        let repl = [];
+        for (let i = 0; i < pr.players.length - 1; i++) {
+          outer: for (let j = i + 1; j < pr.players.length; j++) {
+            scI = scores[pr.players[i]];
+            scJ = scores[pr.players[j]];
+            for (let k = 0; k < scI.length; k++) {
+              if (scI[k] > scJ[k]) {
+                res.push(
+                  `\\(${pr.players[i]}P^{\\succsim}_{lex}${pr.players[j]}\\) because \\(\\theta^{\\succsim}(${pr.players[i]})_{${k + 1}} > \\theta^{\\succsim}(${pr.players[j]})_{${
+                    k + 1
+                  }}\\).`
+                );
+                testSwap(ordered, pr.players[i], pr.players[j]);
+                continue outer;
+              } else if (scJ[k] > scI[k]) {
+                res.push(
+                  `\\(${pr.players[j]}P^{\\succsim}_{lex}${pr.players[i]}\\) because \\(\\theta^{\\succsim}(${pr.players[j]})_{${k + 1}} > \\theta^{\\succsim}(${pr.players[i]})_{${
+                    k + 1
+                  }}\\).`
+                );
+                testSwap(ordered, pr.players[j], pr.players[i]);
+                continue outer;
+              }
+            }
+            res.push(`\\(${pr.players[i]}I^{\\succsim}_{lex}${pr.players[j]}\\) because \\(\\theta^{\\succsim}(${pr.players[i]}) = \\theta^{\\succsim}(${pr.players[j]})\\).`);
+            repl.push([`${pr.players[i]}P^{\\succsim}_{lex}${pr.players[j]}`, `${pr.players[i]}I^{\\succsim}_{lex}${pr.players[j]}`]);
+            repl.push([`${pr.players[j]}P^{\\succsim}_{lex}${pr.players[i]}`, `${pr.players[j]}I^{\\succsim}_{lex}${pr.players[i]}`]);
+          }
+        }
+
+        let ranking = ordered.join("P^{\\succsim}_{lex}");
+        for (let rp of repl) {
+          ranking = ranking.replace(rp[0], rp[1]);
+        }
+        return { ranking: ranking, comparisons: res.join("<br>\n") };
+      }
+
+      function L1Analysis(pr) {
+        let scores = L1Scores(pr).result;
+        let res = [];
+        let ordered = pr.players.slice();
+        let repl = [];
+
+        for (let i = 0; i < pr.players.length - 1; i++) {
+          outer: for (let j = i + 1; j < pr.players.length; j++) {
+            let scI = scores[pr.players[i]];
+            let scJ = scores[pr.players[j]];
+            for (let col = 0; col < pr.eqs.length; col++) {
+              for (let row = 0; row < pr.players.length; row++) {
+                if (scI[row][col] > scJ[row][col]) {
+                  res.push(
+                    `\\(${pr.players[i]}P^{\\succsim}_{L^{(1)}}${pr.players[j]}\\) because \\(M^{\\succsim,${pr.players[i]}}_{${row + 1},${col + 1}} > M^{\\succsim,${
+                      pr.players[j]
+                    }}_{${row + 1},${col + 1}}\\).`
+                  );
+                  testSwap(ordered, pr.players[i], pr.players[j]);
+                  continue outer;
+                } else if (scJ[row][col] > scI[row][col]) {
+                  res.push(
+                    `\\(${pr.players[j]}P^{\\succsim}_{L^{(1)}}${pr.players[i]}\\) because \\(M^{\\succsim,${pr.players[j]}}_{${row + 1},${col + 1}} > M^{\\succsim,${
+                      pr.players[i]
+                    }}_{${row + 1},${col + 1}}\\).`
+                  );
+                  testSwap(ordered, pr.players[j], pr.players[i]);
+                  continue outer;
+                }
+              }
+            }
+            res.push(`\\(${pr.players[i]}I^{\\succsim}_{L^{(1)}}${pr.players[j]}\\) because \\(M^{\\succsim,${pr.players[j]}} = M^{\\succsim,${pr.players[i]}}\\).`);
+            repl.push([`${pr.players[i]}P^{\\succsim}_{L^{(1)}}${pr.players[j]}`, `${pr.players[i]}I^{\\succsim}_{L^{(1)}}${pr.players[j]}`]);
+            repl.push([`${pr.players[j]}P^{\\succsim}_{L^{(1)}}${pr.players[i]}`, `${pr.players[j]}I^{\\succsim}_{L^{(1)}}${pr.players[i]}`]);
+          }
+        }
+        let ranking = ordered.join("P^{\\succsim}_{L^{(1)}}");
+        for (let rp of repl) {
+          ranking = ranking.replace(rp[0], rp[1]);
+        }
+        return { ranking: ranking, comparisons: res.join("<br>\n") };
+      }
+
+      function L2Analysis(pr) {
+        let scores = L1Scores(pr).result;
+        let res = [];
+        let ordered = pr.players.slice();
+        let repl = [];
+
+        for (let i = 0; i < pr.players.length - 1; i++) {
+          outer: for (let j = i + 1; j < pr.players.length; j++) {
+            let scI = scores[pr.players[i]];
+            let scJ = scores[pr.players[j]];
+
+            for (let col = 0; col < pr.eqs.length; col++) {
+              let sumI = 0;
+              let sumJ = 0;
+              for (let k = 0; k < pr.players.length; k++) {
+                sumI += scI[k][col];
+                sumJ += scJ[k][col];
+              }
+              if (sumI > sumJ) {
+                res.push(
+                  `\\(${pr.players[i]}P^{\\succsim}_{L^{(2)}}${pr.players[j]}\\) because for column ${col + 1}, \\(\\sum_{p \\in \\{1, \\dots, n\\}} M^{\\succsim,${
+                    pr.players[i]
+                  }}_{p,${col + 1}} = ${sumI} > ${sumJ} = \\sum_{p \\in \\{1, \\dots, n\\}} M^{\\succsim,${pr.players[j]}}_{p,${col + 1}}\\).`
+                );
+                testSwap(ordered, pr.players[i], pr.players[j]);
+                continue outer;
+              } else if (sumJ > sumI) {
+                res.push(
+                  `\\(${pr.players[j]}P^{\\succsim}_{L^{(2)}}${pr.players[i]}\\) because for column ${col + 1}, \\(\\sum_{p \\in \\{1, \\dots, n\\}} M^{\\succsim,${
+                    pr.players[j]
+                  }}_{p,${col + 1}} = ${sumJ} > ${sumI} = \\sum_{p \\in \\{1, \\dots, n\\}} M^{\\succsim,${pr.players[i]}}_{p,${col + 1}}\\).`
+                );
+                testSwap(ordered, pr.players[j], pr.players[i]);
+                continue outer;
+              }
+
+              for (let row = 0; row < pr.players.length; row++) {
+                if (scI[row][col] > scJ[row][col]) {
+                  res.push(
+                    `\\(${pr.players[i]}P^{\\succsim}_{L^{(2)}}${pr.players[j]}\\) because \\(M^{\\succsim,${pr.players[i]}}_{${row + 1},${col + 1}} > M^{\\succsim,${
+                      pr.players[j]
+                    }}_{${row + 1},${col + 1}}\\).`
+                  );
+                  testSwap(ordered, pr.players[i], pr.players[j]);
+                  continue outer;
+                } else if (scJ[row][col] > scI[row][col]) {
+                  res.push(
+                    `\\(${pr.players[j]}P^{\\succsim}_{L^{(2)}}${pr.players[i]}\\) because \\(M^{\\succsim,${pr.players[j]}}_{${row + 1},${col + 1}} > M^{\\succsim,${
+                      pr.players[i]
+                    }}_{${row + 1},${col + 1}}\\).`
+                  );
+                  testSwap(ordered, pr.players[j], pr.players[i]);
+                  continue outer;
+                }
+              }
+            }
+            res.push(`\\(${pr.players[i]}I^{\\succsim}_{L^{(2)}}${pr.players[j]}\\) because \\(M^{\\succsim,${pr.players[j]}} = M^{\\succsim,${pr.players[i]}}\\).`);
+            repl.push([`${pr.players[i]}P^{\\succsim}_{L^{(2)}}${pr.players[j]}`, `${pr.players[i]}I^{\\succsim}_{L^{(2)}}${pr.players[j]}`]);
+            repl.push([`${pr.players[j]}P^{\\succsim}_{L^{(2)}}${pr.players[i]}`, `${pr.players[j]}I^{\\succsim}_{L^{(2)}}${pr.players[i]}`]);
+          }
+        }
+        let ranking = ordered.join("P^{\\succsim}_{L^{(2)}}");
+        for (let rp of repl) {
+          ranking = ranking.replace(rp[0], rp[1]);
+        }
+        return { ranking: ranking, comparisons: res.join("<br>\n") };
+      }
+
+      function LPAnalysis(pr) {
+        let scores = L1Scores(pr).result;
+        let res = [];
+        let ordered = pr.players.slice();
+        let repl = [];
+
+        for (let i = 0; i < pr.players.length - 1; i++) {
+          outer: for (let j = i + 1; j < pr.players.length; j++) {
+            let scI = scores[pr.players[i]];
+            let scJ = scores[pr.players[j]];
+            let sI = scI[0].indexOf(1);
+            let sJ = scJ[0].indexOf(1);
+
+            if (sI > sJ) {
+              res.push(`\\(${pr.players[i]}P^{\\succsim}_{L^p}${pr.players[j]}\\) because \\(\\{${pr.players[i]}\\} \\succ \\{${pr.players[j]}\\}\\).`);
+              testSwap(ordered, pr.players[i], pr.players[j]);
+              continue outer;
+            } else if (sJ > sI) {
+              res.push(`\\(${pr.players[j]}P^{\\succsim}_{L^p}${pr.players[i]}\\) because \\(\\{${pr.players[j]}\\} \\succ \\{${pr.players[i]}\\}\\).`);
+              testSwap(ordered, pr.players[j], pr.players[i]);
+              continue outer;
+            }
+
+            if (sI === 0) {
+              res.push(
+                `\\(${pr.players[i]}I^{\\succsim}_{L^p}${pr.players[j]}\\) because \\(\\{${pr.players[i]}\\}\\) and \\(\\{${pr.players[j]}\\}\\) are in the first equivalence class.`
+              );
+              repl.push([`${pr.players[i]}P^{\\succsim}_{L^p}${pr.players[j]}`, `${pr.players[i]}I^{\\succsim}_{L^p}${pr.players[j]}`]);
+              repl.push([`${pr.players[j]}P^{\\succsim}_{L^p}${pr.players[i]}`, `${pr.players[j]}I^{\\succsim}_{L^p}${pr.players[i]}`]);
+              continue outer;
+            }
+
+            for (let row = 1; row < pr.players.length; row++) {
+              let sumI = 0;
+              let sumJ = 0;
+              for (let col = 0; col < sI; col++) {
+                sumI += scI[row][col];
+                sumJ += scJ[row][col];
+              }
+              if (sumI > sumJ) {
+                res.push(
+                  `\\(${pr.players[i]}P^{\\succsim}_{L^p}${pr.players[j]}\\) because \\(\\sum_{k = 1}^{${sI}} M^{\\succsim,${pr.players[i]}}_{${
+                    row + 1
+                  },p} > \\sum_{k = 1}^{${sI}} M^{\\succsim,${pr.players[j]}}_{${row + 1},p}\\)`
+                );
+                testSwap(ordered, pr.players[i], pr.players[j]);
+                continue outer;
+              } else if (sumJ > sumI) {
+                res.push(
+                  `\\(${pr.players[j]}P^{\\succsim}_{L^p}${pr.players[i]}\\) because \\(\\sum_{k = 1}^{${sJ}} M^{\\succsim,${pr.players[j]}}_{${
+                    row + 1
+                  },p} > \\sum_{k = 1}^{${sJ}} M^{\\succsim,${pr.players[i]}}_{${row + 1},p}\\)`
+                );
+                testSwap(ordered, pr.players[j], pr.players[i]);
+                continue outer;
+              }
+            }
+
+            res.push(
+              `\\(${pr.players[i]}I^{\\succsim}_{L^p}${pr.players[j]}\\) because \\(\\{${pr.players[i]}\\} \\sim \\{${pr.players[j]}\\}\\) and all other rows sum to the same number from columns 1 through ${sI}.`
+            );
+
+            repl.push([`${pr.players[i]}P^{\\succsim}_{L^p}${pr.players[j]}`, `${pr.players[i]}I^{\\succsim}_{L^p}${pr.players[j]}`]);
+            repl.push([`${pr.players[j]}P^{\\succsim}_{L^p}${pr.players[i]}`, `${pr.players[j]}I^{\\succsim}_{L^p}${pr.players[i]}`]);
+          }
+        }
+
+        let ranking = ordered.join("P^{\\succsim}_{L^p}");
+        for (let rp of repl) {
+          ranking = ranking.replace(rp[0], rp[1]);
+        }
+        return { ranking: ranking, comparisons: res.join("<br>\n") };
+      }
+
+      function LPSAnalysis(pr) {
+        let scores = L1Scores(pr).result;
+        let res = [];
+        let ordered = pr.players.slice();
+        let repl = [];
+
+        for (let i = 0; i < pr.players.length - 1; i++) {
+          outer: for (let j = i + 1; j < pr.players.length; j++) {
+            let scI = scores[pr.players[i]];
+            let scJ = scores[pr.players[j]];
+            let sI = scI[0].indexOf(1);
+            let sJ = scJ[0].indexOf(1);
+
+            if (sI > sJ) {
+              res.push(`\\(${pr.players[i]}P^{\\succsim}_{L^{p^*}}${pr.players[j]}\\) because \\(\\{${pr.players[i]}\\} \\succ \\{${pr.players[j]}\\}\\).`);
+              testSwap(ordered, pr.players[i], pr.players[j]);
+              continue outer;
+            } else if (sJ > sI) {
+              res.push(`\\(${pr.players[j]}P^{\\succsim}_{L^{p^*}}${pr.players[i]}\\) because \\(\\{${pr.players[j]}\\} \\succ \\{${pr.players[i]}\\}\\).`);
+              testSwap(ordered, pr.players[j], pr.players[i]);
+              continue outer;
+            }
+
+            if (sI === 0) {
+              res.push(
+                `\\(${pr.players[i]}I^{\\succsim}_{L^{p^*}}${pr.players[j]}\\) because \\(\\{${pr.players[i]}\\}\\) and \\(\\{${pr.players[j]}\\}\\) are in the first equivalence class.`
+              );
+              repl.push([`${pr.players[i]}P^{\\succsim}_{L^{p^*}}${pr.players[j]}`, `${pr.players[i]}I^{\\succsim}_{L^{p^*}}${pr.players[j]}`]);
+              repl.push([`${pr.players[j]}P^{\\succsim}_{L^{p^*}}${pr.players[i]}`, `${pr.players[j]}I^{\\succsim}_{L^{p^*}}${pr.players[i]}`]);
+              continue outer;
+            }
+
+            for (let row = 1; row < pr.players.length; row++) {
+              for (let col = 0; col < sI; col++) {
+                if (scI[row][col] > scJ[row][col]) {
+                  res.push(
+                    `\\(${pr.players[i]}P^{\\succsim}_{L^{p^*}}${pr.players[j]}\\) because \\(\\{${pr.players[i]}\\} \\sim \\{${pr.players[j]}\\}\\) and \\(M^{\\succsim,${
+                      pr.players[i]
+                    }}_{${row + 1},${col + 1}} > M^{\\succsim,${pr.players[j]}}_{${row + 1},${col + 1}}\\).`
+                  );
+                  testSwap(ordered, pr.players[i], pr.players[j]);
+                  continue outer;
+                } else if (scJ[row][col] > scI[row][col]) {
+                  res.push(
+                    `\\(${pr.players[j]}P^{\\succsim}_{L^{p^*}}${pr.players[i]}\\) because \\(\\{${pr.players[j]}\\} \\sim \\{${pr.players[i]}\\}\\) and \\(M^{\\succsim,${
+                      pr.players[j]
+                    }}_{${row + 1},${col + 1}} > M^{\\succsim,${pr.players[i]}}_{${row + 1},${col + 1}}\\).`
+                  );
+                  testSwap(ordered, pr.players[j], pr.players[i]);
+                  continue outer;
+                }
+              }
+            }
+
+            res.push(
+              `\\(${pr.players[i]}I^{\\succsim}_{L^{p^*}}${pr.players[j]}\\) because \\(\\{${pr.players[i]}\\} \\sim \\{${pr.players[j]}\\}\\) and all other rows and columns to the left of column ${sI} are identical.`
+            );
+
+            repl.push([`${pr.players[i]}P^{\\succsim}_{L^{p^*}}${pr.players[j]}`, `${pr.players[i]}I^{\\succsim}_{L^{p^*}}${pr.players[j]}`]);
+            repl.push([`${pr.players[j]}P^{\\succsim}_{L^{p^*}}${pr.players[i]}`, `${pr.players[j]}I^{\\succsim}_{L^{p^*}}${pr.players[i]}`]);
+          }
+        }
+
+        let ranking = ordered.join("P^{\\succsim}_{L^{p^*}}");
+        for (let rp of repl) {
+          ranking = ranking.replace(rp[0], rp[1]);
+        }
+        return { ranking: ranking, comparisons: res.join("<br>\n") };
+      }
+
+      // Enter Button Handler
+      enterButton.addEventListener("click", () => {
+        // In a real application, you'd use textInput.value to calculate results.
+        // For this demo, we just show the fixed output.
+        let pr = toPr(textInput.value.replace(/[^1-9~>()]/g, ""));
+
+        // renderMathOutput(lexScores.str, pr.replace(/>/g, "\\succ").replace(/~/g, "\\sim"));
+        renderMathOutput(pr);
+      });
+
+      // Copy Button Handler
+      copyButton.addEventListener("click", () => {
+        // Select the content of the hidden textarea
+        latexCodeArea.select();
+        latexCodeArea.setSelectionRange(0, 99999); // For mobile devices
+
+        // Copy the text to the clipboard
+        try {
+          document.execCommand("copy");
+          copyButton.textContent = "Copied!";
+          setTimeout(() => {
+            copyButton.textContent = "Copy LaTeX";
+          }, 2000); // Reset button text after 2 seconds
+        } catch (err) {
+          console.error("Could not copy text: ", err);
+          alert("Failed to copy LaTeX code.");
+        }
+      });
+
+      // Initial check (optional: run on page load)
+      // If you wanted to show the demo output right away, uncomment the next line:
+      // renderMathOutput(demoLatexCode);
+    </script>
+  </body>
+</html>
