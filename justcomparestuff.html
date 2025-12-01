@@ -4852,30 +4852,6 @@
         "3 > 2 > 1 > 23 > 13 > 12",
       ];
 
-      // The desired LaTeX code to be displayed
-      const lesVectors = `
-      % Vectors
-      \\theta^\\succsim(1) &= (1,0,0) \\\\
-      \\theta^\\succsim(2) &= (0,1,0)
-      `;
-
-      const lesMatrix = `
-      % Matrices
-      M^{\\succsim, 1} &= \\begin{bmatrix}
-        1 & 0 & 0 \\\\
-        2 & 0 & 1 \\\\
-        3 & 0 & 0 \\\\
-        1 & 0 & 0
-      \\end{bmatrix}\\\\
-
-      M^{\\succsim, 2} &= \\begin{bmatrix}
-        1 & 0 & 0 \\\\
-        1 & 1 & 1 \\\\
-        3 & 0 & 0 \\\\
-        1 & 0 & 0
-      \\end{bmatrix}
-      `;
-
       /**
        * Renders the LaTeX code in the MathJax output area.
        */
@@ -4993,7 +4969,7 @@ ${LPSAn.comparisons}`;
         });
         return {
           result: result,
-          str: pr.players.map((el) => `\\theta^{\\succsim}(${el}) = (${result[el].join(", ")})`).join("\\\\\n"),
+          str: pr.players.map((el) => `\\theta^{\\succsim}(${el}) &= (${result[el].join(", ")})`).join("\\\\\n"),
         };
       }
 
@@ -5018,20 +4994,23 @@ ${LPSAn.comparisons}`;
         };
       }
 
-      function testSwap(arr, i, j) {
-        let ti = arr.indexOf(i);
-        let tj = arr.indexOf(j);
-        if (ti > tj) {
-          arr[ti] = j;
-          arr[tj] = i;
+      function toOrdered(players, scores, name) {
+        players = players.slice();
+        players.sort((a, b) => scores[b] - scores[a]);
+        let result = `${players[0]}`;
+        for (let i = 1; i < players.length; i++) {
+          if (scores[players[i - 1]] === scores[players[i]]) {
+            result += `I^{\\succsim}_{${name}}${players[i]}`;
+          } else {
+            result += `P^{\\succsim}_{${name}}${players[i]}`;
+          }
         }
+        return result;
       }
-
       function lexAnalysis(pr) {
         let scores = lexcelScores(pr).result;
         let res = [];
-        let ordered = pr.players.slice();
-        let repl = [];
+        let ordered = Object.fromEntries(pr.players.map((x) => [x, 0]));
         for (let i = 0; i < pr.players.length - 1; i++) {
           outer: for (let j = i + 1; j < pr.players.length; j++) {
             scI = scores[pr.players[i]];
@@ -5043,7 +5022,7 @@ ${LPSAn.comparisons}`;
                     k + 1
                   }}\\).`
                 );
-                testSwap(ordered, pr.players[i], pr.players[j]);
+                ordered[pr.players[i]] += 1;
                 continue outer;
               } else if (scJ[k] > scI[k]) {
                 res.push(
@@ -5051,28 +5030,21 @@ ${LPSAn.comparisons}`;
                     k + 1
                   }}\\).`
                 );
-                testSwap(ordered, pr.players[j], pr.players[i]);
+                ordered[pr.players[j]] += 1;
                 continue outer;
               }
             }
             res.push(`\\(${pr.players[i]}I^{\\succsim}_{lex}${pr.players[j]}\\) because \\(\\theta^{\\succsim}(${pr.players[i]}) = \\theta^{\\succsim}(${pr.players[j]})\\).`);
-            repl.push([`${pr.players[i]}P^{\\succsim}_{lex}${pr.players[j]}`, `${pr.players[i]}I^{\\succsim}_{lex}${pr.players[j]}`]);
-            repl.push([`${pr.players[j]}P^{\\succsim}_{lex}${pr.players[i]}`, `${pr.players[j]}I^{\\succsim}_{lex}${pr.players[i]}`]);
           }
         }
 
-        let ranking = ordered.join("P^{\\succsim}_{lex}");
-        for (let rp of repl) {
-          ranking = ranking.replace(rp[0], rp[1]);
-        }
-        return { ranking: ranking, comparisons: res.join("<br>\n") };
+        return { ranking: toOrdered(pr.players, ordered, "lex"), comparisons: res.join("<br>\n") };
       }
 
       function L1Analysis(pr) {
         let scores = L1Scores(pr).result;
         let res = [];
-        let ordered = pr.players.slice();
-        let repl = [];
+        let ordered = Object.fromEntries(pr.players.map((x) => [x, 0]));
 
         for (let i = 0; i < pr.players.length - 1; i++) {
           outer: for (let j = i + 1; j < pr.players.length; j++) {
@@ -5086,7 +5058,7 @@ ${LPSAn.comparisons}`;
                       pr.players[j]
                     }}_{${row + 1},${col + 1}}\\).`
                   );
-                  testSwap(ordered, pr.players[i], pr.players[j]);
+                  ordered[pr.players[i]] += 1;
                   continue outer;
                 } else if (scJ[row][col] > scI[row][col]) {
                   res.push(
@@ -5094,28 +5066,22 @@ ${LPSAn.comparisons}`;
                       pr.players[i]
                     }}_{${row + 1},${col + 1}}\\).`
                   );
-                  testSwap(ordered, pr.players[j], pr.players[i]);
+                  ordered[pr.players[j]] += 1;
                   continue outer;
                 }
               }
             }
             res.push(`\\(${pr.players[i]}I^{\\succsim}_{L^{(1)}}${pr.players[j]}\\) because \\(M^{\\succsim,${pr.players[j]}} = M^{\\succsim,${pr.players[i]}}\\).`);
-            repl.push([`${pr.players[i]}P^{\\succsim}_{L^{(1)}}${pr.players[j]}`, `${pr.players[i]}I^{\\succsim}_{L^{(1)}}${pr.players[j]}`]);
-            repl.push([`${pr.players[j]}P^{\\succsim}_{L^{(1)}}${pr.players[i]}`, `${pr.players[j]}I^{\\succsim}_{L^{(1)}}${pr.players[i]}`]);
           }
         }
-        let ranking = ordered.join("P^{\\succsim}_{L^{(1)}}");
-        for (let rp of repl) {
-          ranking = ranking.replace(rp[0], rp[1]);
-        }
-        return { ranking: ranking, comparisons: res.join("<br>\n") };
+
+        return { ranking: toOrdered(pr.players, ordered, "L^{(1)}"), comparisons: res.join("<br>\n") };
       }
 
       function L2Analysis(pr) {
         let scores = L1Scores(pr).result;
         let res = [];
-        let ordered = pr.players.slice();
-        let repl = [];
+        let ordered = Object.fromEntries(pr.players.map((x) => [x, 0]));
 
         for (let i = 0; i < pr.players.length - 1; i++) {
           outer: for (let j = i + 1; j < pr.players.length; j++) {
@@ -5135,7 +5101,7 @@ ${LPSAn.comparisons}`;
                     pr.players[i]
                   }}_{p,${col + 1}} = ${sumI} > ${sumJ} = \\sum_{p \\in \\{1, \\dots, n\\}} M^{\\succsim,${pr.players[j]}}_{p,${col + 1}}\\).`
                 );
-                testSwap(ordered, pr.players[i], pr.players[j]);
+                ordered[pr.players[i]] += 1;
                 continue outer;
               } else if (sumJ > sumI) {
                 res.push(
@@ -5143,7 +5109,7 @@ ${LPSAn.comparisons}`;
                     pr.players[j]
                   }}_{p,${col + 1}} = ${sumJ} > ${sumI} = \\sum_{p \\in \\{1, \\dots, n\\}} M^{\\succsim,${pr.players[i]}}_{p,${col + 1}}\\).`
                 );
-                testSwap(ordered, pr.players[j], pr.players[i]);
+                ordered[pr.players[j]] += 1;
                 continue outer;
               }
 
@@ -5154,7 +5120,7 @@ ${LPSAn.comparisons}`;
                       pr.players[j]
                     }}_{${row + 1},${col + 1}}\\).`
                   );
-                  testSwap(ordered, pr.players[i], pr.players[j]);
+                  ordered[pr.players[i]] += 1;
                   continue outer;
                 } else if (scJ[row][col] > scI[row][col]) {
                   res.push(
@@ -5162,28 +5128,22 @@ ${LPSAn.comparisons}`;
                       pr.players[i]
                     }}_{${row + 1},${col + 1}}\\).`
                   );
-                  testSwap(ordered, pr.players[j], pr.players[i]);
+                  ordered[pr.players[j]] += 1;
                   continue outer;
                 }
               }
             }
             res.push(`\\(${pr.players[i]}I^{\\succsim}_{L^{(2)}}${pr.players[j]}\\) because \\(M^{\\succsim,${pr.players[j]}} = M^{\\succsim,${pr.players[i]}}\\).`);
-            repl.push([`${pr.players[i]}P^{\\succsim}_{L^{(2)}}${pr.players[j]}`, `${pr.players[i]}I^{\\succsim}_{L^{(2)}}${pr.players[j]}`]);
-            repl.push([`${pr.players[j]}P^{\\succsim}_{L^{(2)}}${pr.players[i]}`, `${pr.players[j]}I^{\\succsim}_{L^{(2)}}${pr.players[i]}`]);
           }
         }
-        let ranking = ordered.join("P^{\\succsim}_{L^{(2)}}");
-        for (let rp of repl) {
-          ranking = ranking.replace(rp[0], rp[1]);
-        }
-        return { ranking: ranking, comparisons: res.join("<br>\n") };
+
+        return { ranking: toOrdered(pr.players, ordered, "L^{(2)}"), comparisons: res.join("<br>\n") };
       }
 
       function LPAnalysis(pr) {
         let scores = L1Scores(pr).result;
         let res = [];
-        let ordered = pr.players.slice();
-        let repl = [];
+        let ordered = Object.fromEntries(pr.players.map((x) => [x, 0]));
 
         for (let i = 0; i < pr.players.length - 1; i++) {
           outer: for (let j = i + 1; j < pr.players.length; j++) {
@@ -5194,11 +5154,11 @@ ${LPSAn.comparisons}`;
 
             if (sI > sJ) {
               res.push(`\\(${pr.players[i]}P^{\\succsim}_{L^p}${pr.players[j]}\\) because \\(\\{${pr.players[i]}\\} \\succ \\{${pr.players[j]}\\}\\).`);
-              testSwap(ordered, pr.players[i], pr.players[j]);
+              ordered[pr.players[i]] += 1;
               continue outer;
             } else if (sJ > sI) {
               res.push(`\\(${pr.players[j]}P^{\\succsim}_{L^p}${pr.players[i]}\\) because \\(\\{${pr.players[j]}\\} \\succ \\{${pr.players[i]}\\}\\).`);
-              testSwap(ordered, pr.players[j], pr.players[i]);
+              ordered[pr.players[j]] += 1;
               continue outer;
             }
 
@@ -5206,8 +5166,6 @@ ${LPSAn.comparisons}`;
               res.push(
                 `\\(${pr.players[i]}I^{\\succsim}_{L^p}${pr.players[j]}\\) because \\(\\{${pr.players[i]}\\}\\) and \\(\\{${pr.players[j]}\\}\\) are in the first equivalence class.`
               );
-              repl.push([`${pr.players[i]}P^{\\succsim}_{L^p}${pr.players[j]}`, `${pr.players[i]}I^{\\succsim}_{L^p}${pr.players[j]}`]);
-              repl.push([`${pr.players[j]}P^{\\succsim}_{L^p}${pr.players[i]}`, `${pr.players[j]}I^{\\succsim}_{L^p}${pr.players[i]}`]);
               continue outer;
             }
 
@@ -5224,7 +5182,7 @@ ${LPSAn.comparisons}`;
                     row + 1
                   },p} > \\sum_{k = 1}^{${sI}} M^{\\succsim,${pr.players[j]}}_{${row + 1},p}\\)`
                 );
-                testSwap(ordered, pr.players[i], pr.players[j]);
+                ordered[pr.players[i]] += 1;
                 continue outer;
               } else if (sumJ > sumI) {
                 res.push(
@@ -5232,7 +5190,7 @@ ${LPSAn.comparisons}`;
                     row + 1
                   },p} > \\sum_{k = 1}^{${sJ}} M^{\\succsim,${pr.players[i]}}_{${row + 1},p}\\)`
                 );
-                testSwap(ordered, pr.players[j], pr.players[i]);
+                ordered[pr.players[j]] += 1;
                 continue outer;
               }
             }
@@ -5240,24 +5198,16 @@ ${LPSAn.comparisons}`;
             res.push(
               `\\(${pr.players[i]}I^{\\succsim}_{L^p}${pr.players[j]}\\) because \\(\\{${pr.players[i]}\\} \\sim \\{${pr.players[j]}\\}\\) and all other rows sum to the same number from columns 1 through ${sI}.`
             );
-
-            repl.push([`${pr.players[i]}P^{\\succsim}_{L^p}${pr.players[j]}`, `${pr.players[i]}I^{\\succsim}_{L^p}${pr.players[j]}`]);
-            repl.push([`${pr.players[j]}P^{\\succsim}_{L^p}${pr.players[i]}`, `${pr.players[j]}I^{\\succsim}_{L^p}${pr.players[i]}`]);
           }
         }
 
-        let ranking = ordered.join("P^{\\succsim}_{L^p}");
-        for (let rp of repl) {
-          ranking = ranking.replace(rp[0], rp[1]);
-        }
-        return { ranking: ranking, comparisons: res.join("<br>\n") };
+        return { ranking: toOrdered(pr.players, ordered, "L^p"), comparisons: res.join("<br>\n") };
       }
 
       function LPSAnalysis(pr) {
         let scores = L1Scores(pr).result;
         let res = [];
-        let ordered = pr.players.slice();
-        let repl = [];
+        let ordered = Object.fromEntries(pr.players.map((x) => [x, 0]));
 
         for (let i = 0; i < pr.players.length - 1; i++) {
           outer: for (let j = i + 1; j < pr.players.length; j++) {
@@ -5268,11 +5218,11 @@ ${LPSAn.comparisons}`;
 
             if (sI > sJ) {
               res.push(`\\(${pr.players[i]}P^{\\succsim}_{L^{p^*}}${pr.players[j]}\\) because \\(\\{${pr.players[i]}\\} \\succ \\{${pr.players[j]}\\}\\).`);
-              testSwap(ordered, pr.players[i], pr.players[j]);
+              ordered[pr.players[i]] += 1;
               continue outer;
             } else if (sJ > sI) {
               res.push(`\\(${pr.players[j]}P^{\\succsim}_{L^{p^*}}${pr.players[i]}\\) because \\(\\{${pr.players[j]}\\} \\succ \\{${pr.players[i]}\\}\\).`);
-              testSwap(ordered, pr.players[j], pr.players[i]);
+              ordered[pr.players[j]] += 1;
               continue outer;
             }
 
@@ -5280,8 +5230,6 @@ ${LPSAn.comparisons}`;
               res.push(
                 `\\(${pr.players[i]}I^{\\succsim}_{L^{p^*}}${pr.players[j]}\\) because \\(\\{${pr.players[i]}\\}\\) and \\(\\{${pr.players[j]}\\}\\) are in the first equivalence class.`
               );
-              repl.push([`${pr.players[i]}P^{\\succsim}_{L^{p^*}}${pr.players[j]}`, `${pr.players[i]}I^{\\succsim}_{L^{p^*}}${pr.players[j]}`]);
-              repl.push([`${pr.players[j]}P^{\\succsim}_{L^{p^*}}${pr.players[i]}`, `${pr.players[j]}I^{\\succsim}_{L^{p^*}}${pr.players[i]}`]);
               continue outer;
             }
 
@@ -5293,7 +5241,7 @@ ${LPSAn.comparisons}`;
                       pr.players[i]
                     }}_{${row + 1},${col + 1}} > M^{\\succsim,${pr.players[j]}}_{${row + 1},${col + 1}}\\).`
                   );
-                  testSwap(ordered, pr.players[i], pr.players[j]);
+                  ordered[pr.players[i]] += 1;
                   continue outer;
                 } else if (scJ[row][col] > scI[row][col]) {
                   res.push(
@@ -5301,7 +5249,7 @@ ${LPSAn.comparisons}`;
                       pr.players[j]
                     }}_{${row + 1},${col + 1}} > M^{\\succsim,${pr.players[i]}}_{${row + 1},${col + 1}}\\).`
                   );
-                  testSwap(ordered, pr.players[j], pr.players[i]);
+                  ordered[pr.players[j]] += 1;
                   continue outer;
                 }
               }
@@ -5310,17 +5258,10 @@ ${LPSAn.comparisons}`;
             res.push(
               `\\(${pr.players[i]}I^{\\succsim}_{L^{p^*}}${pr.players[j]}\\) because \\(\\{${pr.players[i]}\\} \\sim \\{${pr.players[j]}\\}\\) and all other rows and columns to the left of column ${sI} are identical.`
             );
-
-            repl.push([`${pr.players[i]}P^{\\succsim}_{L^{p^*}}${pr.players[j]}`, `${pr.players[i]}I^{\\succsim}_{L^{p^*}}${pr.players[j]}`]);
-            repl.push([`${pr.players[j]}P^{\\succsim}_{L^{p^*}}${pr.players[i]}`, `${pr.players[j]}I^{\\succsim}_{L^{p^*}}${pr.players[i]}`]);
           }
         }
 
-        let ranking = ordered.join("P^{\\succsim}_{L^{p^*}}");
-        for (let rp of repl) {
-          ranking = ranking.replace(rp[0], rp[1]);
-        }
-        return { ranking: ranking, comparisons: res.join("<br>\n") };
+        return { ranking: toOrdered(pr.players, ordered, "L^{p^*}"), comparisons: res.join("<br>\n") };
       }
 
       // Enter Button Handler
