@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Interactive score overlay</title>
+  <style>
+    :root {
+      --bg: #1f2429;
+      --text: #e8edf5;
+      --active: rgba(78, 161, 255, 0.92);
+      --idle: rgba(62, 74, 93, 0.82);
+      --hover: rgba(98, 122, 160, 0.45);
+      --radius: 10px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 14px;
+    }
+
+    .wrap {
+      max-width: 1570px;
+      margin: 0 auto;
+    }
+
+    .stage {
+      position: relative;
+      width: 100%;
+      line-height: 0;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .stage img {
+      width: 100%;
+      height: auto;
+      display: block;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .hotspot {
+      position: absolute;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      border-radius: var(--radius);
+      transition: background 0.15s ease;
+    }
+
+    .hotspot:hover,
+    .hotspot:focus-visible {
+      background: var(--hover);
+      outline: none;
+    }
+
+    .hotspot.active {
+      background: transparent;
+      cursor: default;
+    }
+
+    .hint {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #b9c5d8;
+    }
+
+    /* Coordinates based on 1600x588 screenshots */
+    /* Row 1 */
+    #r1s { left: 33%; top: 43.6%; width: 7.0%; height: 10.4%; }
+    #r1p { left: 40%; top: 43.6%; width: 18.1%; height: 10.4%; }
+
+    /* Row 2 */
+    #r2s { left: 33%; top: 58.1%; width: 7.0%; height: 10.4%; }
+    #r2p { left: 40%; top: 58.1%; width: 18.1%; height: 10.4%; }
+
+    /* Row 3 */
+    #r3s { left: 33%; top: 72.5%; width: 7.0%; height: 10.4%; }
+    #r3p { left: 40%; top: 72.5%; width: 18.1%; height: 10.4%; }
+
+    /* Row 4 */
+    #r4s { left: 33%; top: 86.6%; width: 7.0%; height: 10.4%; }
+    #r4p { left: 40%; top: 86.6%; width: 18.1%; height: 10.4%; }
+
+    .legend {
+      margin-top: 8px;
+      font-size: 13px;
+      color: #93a3bb;
+    }
+
+    code {
+      background: rgba(255,255,255,0.06);
+      padding: 0.12rem 0.35rem;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="stage">
+      <img id="preview" src="ppss.png" alt="Interactive score preview" />
+
+      <button id="r1s" class="hotspot" aria-label="Row 1: Show" data-row="0" data-value="s"></button>
+      <button id="r1p" class="hotspot" aria-label="Row 1: Show in parentheses" data-row="0" data-value="p"></button>
+
+      <button id="r2s" class="hotspot" aria-label="Row 2: Show" data-row="1" data-value="s"></button>
+      <button id="r2p" class="hotspot" aria-label="Row 2: Show in parentheses" data-row="1" data-value="p"></button>
+
+      <button id="r3s" class="hotspot" aria-label="Row 3: Show" data-row="2" data-value="s"></button>
+      <button id="r3p" class="hotspot" aria-label="Row 3: Show in parentheses" data-row="2" data-value="p"></button>
+
+      <button id="r4s" class="hotspot" aria-label="Row 4: Show" data-row="3" data-value="s"></button>
+      <button id="r4p" class="hotspot" aria-label="Row 4: Show in parentheses" data-row="3" data-value="p"></button>
+    </div>
+
+  </div>
+
+  <script>
+    const preview = document.getElementById('preview');
+    const filenameLabel = document.getElementById('filename');
+
+    let state = ['p', 'p', 's', 's'];
+
+    function render() {
+      const file = `${state.join('')}.png`;
+      preview.src = file;
+      filenameLabel.textContent = file;
+
+      document.querySelectorAll('.hotspot').forEach((btn) => {
+        const row = Number(btn.dataset.row);
+        btn.classList.toggle('active', btn.dataset.value === state[row]);
+      });
+    }
+
+    document.querySelectorAll('.hotspot').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const row = Number(btn.dataset.row);
+        const value = btn.dataset.value;
+        if (state[row] === value) return;
+        state[row] = value;
+        render();
+      });
+    });
+
+    render();
+  </script>
+</body>
+</html>
