@@ -125,6 +125,16 @@
     const preview = document.getElementById('preview');
     const filenameLabel = document.getElementById('filename');
 
+    let images = {};
+    ['ssss', 'sssp', 'ssps', 'sspp', 'spss', 'spsp', 'spps', 'sppp',
+     'psss', 'pssp', 'psps', 'pspp', 'ppss', 'ppsp', 'ppps', 'pppp'].forEach(v => {
+      const file = `${v}.png`;
+      const img = new Image();
+      img.src = file;
+
+      images[file] = img;
+     });
+
     let state = ['p', 'p', 's', 's'];
 
     function render() {
