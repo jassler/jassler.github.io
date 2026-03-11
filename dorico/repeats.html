@@ -123,7 +123,6 @@
 
   <script>
     const preview = document.getElementById('preview');
-    const filenameLabel = document.getElementById('filename');
 
     let images = {};
     ['ssss', 'sssp', 'ssps', 'sspp', 'spss', 'spsp', 'spps', 'sppp',
@@ -140,7 +139,6 @@
     function render() {
       const file = `${state.join('')}.png`;
       preview.src = file;
-      filenameLabel.textContent = file;
 
       document.querySelectorAll('.hotspot').forEach((btn) => {
         const row = Number(btn.dataset.row);
